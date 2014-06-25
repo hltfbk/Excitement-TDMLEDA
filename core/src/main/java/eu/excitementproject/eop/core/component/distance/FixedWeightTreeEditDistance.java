@@ -1230,14 +1230,12 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		String[] fields = lines[i].split("\\s");
     		for (int j = 0; j < fields.length; j++) {
     			String tokenId = fields[0];
-    			//all the fields in the text table
-    			//String form = 
-    			//String lemma =
-    			//...............
-    			//String dprel = 
-    		
-    			//Token token_i = new Token(id, form, lemma, null, head, deprel);
-    			//fragment.add(token_i);
+    			String form = fields[1];
+    			String lemma = fields[2];		
+    			String head = fields[6];
+    			String deprel = fields[7];
+    			FToken token_i = new FToken(Integer.parseInt(tokenId), form, lemma, null, Integer.parseInt(head), deprel);
+    			fragment.addToken(token_i);
     			
     		}
     	}
