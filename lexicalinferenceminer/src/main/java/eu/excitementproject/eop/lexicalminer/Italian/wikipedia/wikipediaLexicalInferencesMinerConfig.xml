@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE page [
+<!ENTITY jars "/opt/share/tp-ita/">
+]>
+
+<configuration>
+
+<module name="General">
+	<param name="jars-dir">&jars;</param>
+	<param name="max_term_length">60</param>
+	<param name="min_term_length">2</param>
+	<param name="useDeAccent">false</param>		<!-- the parameter is used for the UtilClass to change all special English char to regular letters -->
+	<param name="max_NP_words_count">7</param> <!--The maximum words that can be part of a NP phrase (used for the syntacticIDM (in the syntacticUtils class)) ) -->
+	
+</module>
+
+<module name="jwpl">
+	<param name="host">localhost</param>
+	<param name="database">jwpl_ita</param> <!-- Schema name -->
+	<param name="user">root</param>
+	<param name="password">my_nor_2k</param>
+	<param name="language">italian</param>
+</module>
+
+<module name="Extractors">
+	<param name="useCategory">true</param>
+	<param name="useRedirect">true</param>
+	<param name="useLink">true</param> <!-- not usable until new stable version of jwpl will show -->
+	<param name="useParenthesis">true</param>
+	<param name="useLexicalIDM">false</param> <!-- Important note – do not fill the database using both the lexicalIDM and syntacticIDM extractors. Using them both can result in wrong classifiers ranks. -->
+	<param name="useSyntacticIDM">true</param>
+
+</module>
+
+<module name="Database">
+	<param name="driver">org.gjt.mm.mysql.Driver</param>
+	<param name="url">jdbc:mysql://localhost:3306/wikilexresita2</param>
+	<param name="username">root</param>
+	<param name="password">my_nor_2k</param>
+	<param name="insertion batch size">500</param>
+</module>
+
+<module name="processing_tools">
+	<param name="TextPro-lemmatizer-command">/opt/share/tp-ita/textpro1.5/MorphoPro/bin/fstan /opt/share/tp-ita/textpro1.5/MorphoPro/models/italian-utf8.fsa</param>
+	<param name="textPro-path">/opt/share/tp-ita/textpro1.5/</param>
+	<param name="parser">malt</param>
+	<param name="parser-path">/opt/share/tp-ita/italian-parser-1.7.1/</param>
+	<param name="stopwordsFilePath">/opt/share/tp-ita/stopwords_ita.txt</param>
+	<param name="encoding">UTF-8</param>
+</module>
+
+</configuration>
