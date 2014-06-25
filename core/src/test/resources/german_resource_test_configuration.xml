@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE configuration [
+<!ENTITY myVar "Some common #PCDATA that can be reused... ">
+]>
+
+<configuration>
+
+        
+   <section name="GermanTransDmResource">
+      	<!-- This section specifies the German distributional similarity resource based
+        	 on 1) a translation of a distributional space built on an English corpus, 
+        	 and 2) a German corpus. -->
+        	 
+   		<!-- Specifies, which kind of similarity measure should be used.
+   		     Possible values: cosine, balapinc, all (= both cosine and balapinc).
+   		     DEFAULT: all. -->
+   		<property name="simMeasure">all</property>   		
+   </section>
+   
+   
+
+	<section name="GermaNetWrapper">
+		<!-- GermaNetWrapper options: path to GermanNet top directory, and relations to be 
+		     used for LHS->RHS or RHS->LHS, as a value of confidence [0.0 - 1.0] --> 
+
+		<!-- you need to update this for your own GermaNet path. If not found, 
+		     GermaNet init will raise an exception. -->
+		<property name="germaNetFilesPath">/path/to/GermaNet/version8.0/germanet-8.0/GN_V80_XML/</property>  
+
+		<!-- GermaNet relations and their confidences. 
+		     Confidence of 1.0 means "this relation absolutely means Entailment".
+		     Confidence of 0.0 means "this relation absolutely means Non-Entailment".
+		     Confidence of 0.5 means "I can't say anything about Entailment decision".
+			 DEFAULT values: 0.5 for all positive relations. -->
+		<!-- LHS -> RHS relations --> 
+		<property name="causesConfidence">0.5</property> 
+		<property name="entailsConfidence">0.5</property>
+		<property name="hypernymConfidence">0.5</property>
+		
+		<!-- both LHS -> RHS and RHS -> LHS relations --> 
+		<property name="synonymConfidence">0.5</property> 
+		<property name="antonymConfidence">0.0</property>
+		
+		<!-- RHS -> LHS relations -->
+		<property name="hyponymConfidence">0.5</property>
+	</section> 
+	
+	
+	
+	<!-- Specifies parameters for the derivational resource DErivBase (similar to CatVar for English). -->
+	<section name="DerivBaseResource">
+		
+		<!-- Specifies if rule scores should be used from the DErivBase resource or not. 
+		     True= scores are used, False = scores are not used.
+		     According to the value set here, the system chooses between two different file formats for DErivBase.
+		     DEFAULT: true.  -->
+		<property name="useScores">true</property> 
+		
+		<!-- Specifies the maximum accepted amount of derivation steps between two derivationally related lemmas
+		     to count as entailment pair. Integer values range between 1 and 10.
+		     Each pair of lemmas within one derivational family is connected by a set of derivation rules. If one
+		     lemma l2 can be directly derived from lemma l1, they are connected by one rule, thus, the number of
+		     derivation steps is one. If l1 derives to l2, and l2 derives to l3, then the pair l1-l3 is connected
+		     by two derivation steps, etc. The maximum amount of derivation steps to combine two lemmas is ten.
+		     We assume the following: The more derivation steps must be carried out to connect two lemmas, the less 
+		     probable it is that these two lemmas are really derivationally related - and thus they are less probable
+		     to build an enailment relationship. 
+		     Thus, a low value for the property "derivationSteps" only considers lemmas which are highly probably related.   
+ 		     This property is only considered if the property "useScores" = true.
+		     DEFAULT: 10. -->		
+		<property name="derivationSteps">10</property>
+	</section>
+
+</configuration>

@@ -1,0 +1,102 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+   <parent>
+    <groupId>eu.excitementproject</groupId>
+    <artifactId>eop</artifactId>
+    <version>1.1.4-SNAPSHOT</version>
+  </parent>
+  <artifactId>distsim</artifactId>
+  <name>distsim</name>
+  <description>Distributional similarity tool</description>
+  
+   <dependencies>
+   
+   <dependency>
+	<groupId>net.sf.trove4j</groupId>
+	<artifactId>trove4j</artifactId>
+	<version>3.0.1</version>
+   </dependency>
+   <dependency>
+	<groupId>commons-codec</groupId>
+	<artifactId>commons-codec</artifactId>
+	<version>1.4</version>
+   </dependency>
+   
+   <dependency>
+	<groupId>redis.clients</groupId>
+	<artifactId>jedis</artifactId>
+	<version>2.0.0</version>
+   </dependency>
+              
+   <dependency>
+	<groupId>org.apache.hadoop</groupId>
+	<artifactId>hadoop-core</artifactId>
+	<version>0.20.2</version>
+   </dependency>
+   
+   <dependency>
+	<groupId> com.google.guava</groupId>
+	<artifactId>guava</artifactId>
+	<version>15.0</version>
+   </dependency>
+     
+    <dependency>
+		<groupId>eu.excitementproject</groupId>
+  		<artifactId>common</artifactId>
+  		<version>1.1.4-SNAPSHOT</version>
+  	</dependency>
+      
+    <dependency>
+		<groupId>eu.excitementproject</groupId>
+  		<artifactId>redis</artifactId>
+  		<version>1.1.4-SNAPSHOT</version>
+  	</dependency>
+  	
+    <dependency>
+		<groupId>eu.excitementproject</groupId>
+  		<artifactId>lap</artifactId>
+  		<version>1.1.4-SNAPSHOT</version>
+  	</dependency>
+ 
+   <!-- <dependency>
+     <groupId>eu.excitementproject</groupId>
+  	 <artifactId>parse</artifactId>
+     <version>0.0.1-SNAPSHOT</version>
+     </dependency>
+     
+    <dependency>
+		<groupId>ac.biu.nlp</groupId>
+  		<artifactId>parse-utils</artifactId>
+  		<version>001</version>
+  	</dependency>-->
+  	
+    <dependency>
+  		<groupId>nz.ac.waikato.cms.weka</groupId>
+  		<artifactId>weka-stable</artifactId>
+  		<version>3.6.9</version>
+  	</dependency>
+  	
+    <!-- <dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-exec</artifactId>
+		<version>1.1</version>
+	</dependency>-->
+ 
+  	<dependency>
+  		<groupId>de.uni-heidelberg.cl</groupId>
+  		<artifactId>embedded-redis</artifactId>
+  		<version>20131205</version>
+  	</dependency>
+
+    <!-- uncomment the following to include the German redis rdb file for test-->
+	<!-- 
+	<dependency>
+  		<groupId>de.uni-heidelberg.cl</groupId>
+  		<artifactId>redis-german-lin-prox</artifactId>
+  		<version>0.1</version>
+  	</dependency>
+  	--> 
+ 	
+  	</dependencies>
+
+</project>

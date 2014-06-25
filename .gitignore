@@ -1,0 +1,19 @@
+*.class
+.classpath
+.project
+.settings/
+target/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+.DS_Store
+
+bin/*
+
+common/bin/
+lap/bin/
+uima.log
+
