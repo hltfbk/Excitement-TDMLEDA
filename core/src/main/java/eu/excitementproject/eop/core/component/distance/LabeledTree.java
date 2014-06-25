@@ -6,7 +6,7 @@ import treedist.TreeImpl;
 public class LabeledTree extends TreeImpl {
 	
 	private int[] labels;
-	private Token[] tokens;
+	private FToken[] tokens;
 	
 	public LabeledTree(int[] parents, int[] labels) {
 		super(parents);
@@ -19,7 +19,7 @@ public class LabeledTree extends TreeImpl {
 		this.labels = labels;
 	}
 	
-	public LabeledTree(int[] parents, int[] labels, Token[] tokens) {
+	public LabeledTree(int[] parents, int[] labels, FToken[] tokens) {
 		super(parents);
 
 		if (parents == null || labels == null || tokens == null)
@@ -37,13 +37,13 @@ public class LabeledTree extends TreeImpl {
 		
 	}
 	
-	public Token getToken(int nodeId) {
+	public FToken getToken(int nodeId) {
 		
 		return tokens[nodeId];
 		
 	}
 	
-    public Token[] getTokens() {
+    public FToken[] getTokens() {
 		
 		return this.tokens;
 		

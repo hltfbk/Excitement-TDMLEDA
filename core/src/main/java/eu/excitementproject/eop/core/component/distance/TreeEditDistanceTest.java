@@ -10,7 +10,9 @@ import java.util.List;
 import org.junit.Test;
 
 public class TreeEditDistanceTest {
+	
 	class ScoreImpl implements EditScore {
+		
 		private final LabeledTree tree1, tree2;
 
 		public ScoreImpl(LabeledTree tree1, LabeledTree tree2) {
@@ -66,11 +68,11 @@ public class TreeEditDistanceTest {
 		//corre	3	VI	correre+v+indic+pres+nil+3+sing	correre	3	__NULL__	0	ROOT
 		//veloce	4	AS	veloce+adj+_+sing+pst	veloce	4	__NULL__	3	PRED
 		//.	5	XPS	.+punc full_stop+punc	.	5	__NULL__	3	END
-		Token t_token1 = new Token(1, "La", "det", null, 2, "DET");
-		Token t_token2 = new Token(2, "macchina", "macchina", null, 3, "SUBJ");
-		Token t_token3 = new Token(3, "corre", "correre", null, 0, "ROOT");
-		Token t_token4 = new Token(4, "veloce", "veloce", null, 3, "PRED");
-		Token t_token5 = new Token(5, ".", ".", null, 3, "END");
+		FToken t_token1 = new FToken(1, "La", "det", null, 2, "DET");
+		FToken t_token2 = new FToken(2, "macchina", "macchina", null, 3, "SUBJ");
+		FToken t_token3 = new FToken(3, "corre", "correre", null, 0, "ROOT");
+		FToken t_token4 = new FToken(4, "veloce", "veloce", null, 3, "PRED");
+		FToken t_token5 = new FToken(5, ".", ".", null, 3, "END");
 		
 		
 		//Hypothesis in quite CoNLL format
@@ -80,12 +82,12 @@ public class TreeEditDistanceTest {
 		//corre	4	VI	correre+v+indic+pres+nil+3+sing	correre	4	__NULL__	0	ROOT
 		//veloce	5	AS	veloce+adj+_+sing+pst	veloce	5	__NULL__	4	PRED
 		//.	6	XPS	.+punc full_stop+punc	.	6	__NULL__	4	END
-		Token h_token1 = new Token(1, "La", "det", null, 2, "DET");
-		Token h_token2 = new Token(2, "macchina", "macchina", null, 4, "SUBJ");
-		Token h_token3 = new Token(3, "non", "non", null, 4, "RMOD");
-		Token h_token4 = new Token(4, "corre", "correre", null, 0, "ROOT");
-		Token h_token5 = new Token(5, "veloce", "veloce", null, 4, "PRED");
-		Token h_token6 = new Token(6, ".", ".", null, 4, "END");
+		FToken h_token1 = new FToken(1, "La", "det", null, 2, "DET");
+		FToken h_token2 = new FToken(2, "macchina", "macchina", null, 4, "SUBJ");
+		FToken h_token3 = new FToken(3, "non", "non", null, 4, "RMOD");
+		FToken h_token4 = new FToken(4, "corre", "correre", null, 0, "ROOT");
+		FToken h_token5 = new FToken(5, "veloce", "veloce", null, 4, "PRED");
+		FToken h_token6 = new FToken(6, ".", ".", null, 4, "END");
 		
 		
 	    //Tree of Text
@@ -106,7 +108,7 @@ public class TreeEditDistanceTest {
 				t_token5.getId()-1},
 			    
 		//node values
-		new Token[] {t_token1,
+		new FToken[] {t_token1,
 				t_token2,
 				t_token3,
 				t_token4,
@@ -129,7 +131,7 @@ public class TreeEditDistanceTest {
 					h_token6.getId()-1},
 				    
 			//node values
-			new Token[] {h_token1,
+			new FToken[] {h_token1,
 					h_token2,
 					h_token3,
 					h_token4,
@@ -137,16 +139,16 @@ public class TreeEditDistanceTest {
 					h_token6});
 				
 		
-		Token[] tokensInT = t6.getTokens();
+		FToken[] tokensInT = t6.getTokens();
 		for (int i = 0; i < tokensInT.length; i++) {
-			Token token_i = tokensInT[i];
+			FToken token_i = tokensInT[i];
 			String deprelRelations = getDeprelRelationsFromNodeToRoot(t6, token_i.getId() - 1);
 			token_i.setDeprelRelations(deprelRelations);
 		}
 		
-		Token[] tokensInH = t7.getTokens();
+		FToken[] tokensInH = t7.getTokens();
 		for (int i = 0; i < tokensInH.length; i++) {
-			Token token_i = tokensInH[i];
+			FToken token_i = tokensInH[i];
 			String deprelRelations = getDeprelRelationsFromNodeToRoot(t7, token_i.getId() - 1);
 			token_i.setDeprelRelations(deprelRelations);
 		}
@@ -204,18 +206,18 @@ public class TreeEditDistanceTest {
 	    	if (nodes.contains(",")) {
 		    	int node1 = Integer.parseInt(nodes.split(",")[0]);
 		    	int node2= Integer.parseInt(nodes.split(",")[1]);
-		    	Token token1 = t6.getToken(node1);
-		    	Token token2 = t7.getToken(node2);
+		    	FToken token1 = t6.getToken(node1);
+		    	FToken token2 = t7.getToken(node2);
 		    	System.err.println(operationName + ":" + token1 + "-->" + token2);
 	    	}
 	    	else if (operationName.contains("ins")){
 	    		int node = Integer.parseInt(nodes);
-		    	Token token = t7.getToken(node);
+		    	FToken token = t7.getToken(node);
 		    	System.err.println(operationName + ":" + token);
 	    	}
 	    	else { //deletion
 	    		int node = Integer.parseInt(nodes);
-		    	Token token = t6.getToken(node);
+		    	FToken token = t6.getToken(node);
 		    	System.err.println(operationName + ":" + token);
 	    	}
 	    		

@@ -6,25 +6,33 @@ import java.util.Iterator;
 
 public class Fragment {
 	
-	private ArrayList<Token> tokens;
+	private ArrayList<FToken> tokens;
 	
-	public Fragment(ArrayList<Token> tokens){
+	public Fragment(){
+		this.tokens=null;
+	}
+	
+	public Fragment(ArrayList<FToken> tokens){
 		this.tokens=tokens;
 	}
 	
-	public Token getToken(int tokenId){
+	public FToken getToken(int tokenId){
 		return tokens.get(tokenId-1);
 	}
 	
-	public void addToken (Token token){
+	public int size(){
+		return tokens.size();
+	}
+	
+	public void addToken (FToken token){
 		tokens.add(token);
 	}
 	
-	public void addTokens(ArrayList<Token> addedTokens){
+	public void addTokens(ArrayList<FToken> addedTokens){
 		
 	}
 	
-	public Iterator<Token> getIterator(){
+	public Iterator<FToken> getIterator(){
 		return tokens.iterator();
 	}
 		

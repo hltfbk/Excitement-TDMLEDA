@@ -1,6 +1,6 @@
 package eu.excitementproject.eop.core.component.distance;
 
-public class Token {
+public class FToken {
 
 	//ID Token counter, starting at 1 for each new sentence.
 	private int id;
@@ -20,7 +20,7 @@ public class Token {
 	//dprel relations from the current token to the root
 	private String deprelRelations;
 	
-	public Token(int id, String form, String lemma, String stem, int head, String deprel) {
+	public FToken(int id, String form, String lemma, String stem, int head, String deprel) {
 		
 		this.id = id;
 		this.form = form;
@@ -28,6 +28,8 @@ public class Token {
 		this.stem = stem;
 		this.head = head;
 		this.deprel = deprel;
+		//the relation (deprel) moving from the node containing the token and
+		//the root of the tree.
 		this.deprelRelations = "";
 	}
 	
