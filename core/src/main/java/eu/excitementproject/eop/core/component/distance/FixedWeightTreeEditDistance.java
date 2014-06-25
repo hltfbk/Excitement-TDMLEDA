@@ -20,6 +20,10 @@ import org.apache.uima.cas.text.AnnotationIndex;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.tcas.Annotation;
 
+import treedist.EditScore;
+import treedist.Mapping;
+import treedist.TreeEditDistance;
+
 import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.ART;
 import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.CARD;
 import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.CONJ;
@@ -556,13 +560,23 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	try {
     	    // get Text
 	    	JCas tView = jcas.getView("TextView");
-	    	List<Token> tTokensSequence = getTokenSequences(tView);
+	    	//the dependency tree of t
+	    	String t_tree = cas2CoNLLX(tView);
+	    	//the text fragment
+	    	Fragment t_fragment = getFragment(t_tree);
+	    	//List<Token> tTokensSequence = getTokenSequences(tView);
 	    	
 	    	// get Hypothesis
 	    	JCas hView = jcas.getView("HypothesisView"); 
-	    	List<Token> hTokensSequence = getTokenSequences(hView);
+	    	//the dependency tree of t
+	    	String h_tree = cas2CoNLLX(hView);
+	    	//the text fragment
+	    	Fragment h_fragment = getFragment(h_tree);
+	    	//List<Token> hTokensSequence = getTokenSequences(hView);
 
-	    	distanceValue = distance(tTokensSequence, hTokensSequence);
+	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
+	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
+	    	distanceValue = distance(t_fragment, h_fragment);
 	    	
     	} catch (Exception e) {
     		throw new DistanceComponentException(e.getMessage());
@@ -575,31 +589,43 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     
     @Override
     public Vector<Double> calculateScores(JCas jcas) throws ScoringComponentException {
-    	
-    	DistanceValue distanceValue = null;
-    	Vector<Double> v = new Vector<Double>(); 
-    	
-    	try {
-    	    // get Text
+    
+     DistanceValue distanceValue = null;
+     Vector<Double> v = new Vector<Double>();
+    
+     try {
+    	// get Text
 	    	JCas tView = jcas.getView("TextView");
-	    	List<Token> tTokensSequence = getTokenSequences(tView);
+	    	//the dependency tree of t
+	    	String t_tree = cas2CoNLLX(tView);
+	    	//the text fragment
+	    	Fragment t_fragment = getFragment(t_tree);
+	    	//List<Token> tTokensSequence = getTokenSequences(tView);
 	    	
 	    	// get Hypothesis
 	    	JCas hView = jcas.getView("HypothesisView"); 
-	    	List<Token> hTokensSequence = getTokenSequences(hView);
-	    	
-	    	distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	
-    	} catch (Exception e) {
-    		throw new ScoringComponentException(e.getMessage());
-    	}
-    	
-    	v.add(distanceValue.getDistance()); 
-    	v.add(distanceValue.getUnnormalizedValue()); 
-    	
-    	return v;
-    }
+	    	//the dependency tree of t
+	    	String h_tree = cas2CoNLLX(hView);
+	    	//the text fragment
+	    	Fragment h_fragment = getFragment(h_tree);
+	    	//List<Token> hTokensSequence = getTokenSequences(hView);
 
+	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
+	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
+	    	distanceValue = distance(t_fragment, h_fragment);
+    	 
+
+     } catch (Exception e) {
+     throw new ScoringComponentException(e.getMessage());
+     }
+    
+     v.add(distanceValue.getDistance());
+     v.add(distanceValue.getUnnormalizedValue());
+    
+     return v;
+    }
+    
+    
     
     /** 
 	 * Returns a list of tokens contained in the specified CAS. Stop words can be removed.
@@ -736,31 +762,162 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     
     
     /**
-     * Returns the weighted edit distance between the specified
-     * token sequences. The first argument is considered to be the
-     * input and the second argument the output
-     *
-     * @param source first token sequence
-     * @param target second token sequence
+     * Returns the weighted edit distance between T and H.
+     * 
+     * @param t
+     * @param h
      * 
      * @return The edit distance between the sequences of tokens
      * 
      * @throws ArithmeticException
      * 
      */
-    public DistanceValue distance(List<Token> source, List<Token> target ) throws ArithmeticException {
+    public DistanceValue distance(Fragment t, Fragment h) throws ArithmeticException {
         	
     	
     	//here we need to call the library for calculating tree edit distance
     	
     	double distance = 0.0;
-    	double norm = 0.0;
+    	double norm = 1.0;
     	
+    	//these data structure are necessari for the tree edit distance library
+    	//the parents of the node contating the tokens
+    	int[] t_parents = new int[t.size()];
+    	int[] h_parents = new int[h.size()];
+    	
+    	//the ids of the tokens
+    	int[] t_ids = new int[t.size()];
+    	int[] h_ids = new int[h.size()];
+    	
+    	//the tokens themselves
+    	FToken[] t_tokens = new FToken[t.size()];
+    	FToken[] h_tokens = new FToken[h.size()];
+    	
+    	//we are filling the data structure of T
+    	Iterator<FToken> t_iterator = t.getIterator();
+    	int i = 0;
+    	while (t_iterator.hasNext()) {
+    		FToken token_i = t_iterator.next();
+    		//we need to subtract -1 given that the data structure of the code requires that
+        	//the root is -1 instead of 0;
+    		t_parents[i] = token_i.getHead();
+    		t_ids[i] = token_i.getId();
+    		t_tokens[i] = token_i;
+    		i++;
+    	}
+    	//we are filling the data structure of H
+    	Iterator<FToken> h_iterator = h.getIterator();
+    	int j = 0;
+    	while (h_iterator.hasNext()) {
+    		FToken token_j = h_iterator.next();
+    		//we need to subtract -1 given that the data structure of the code requires that
+        	//the root is -1 instead of 0;
+    		h_parents[j] = token_j.getHead();
+    		h_ids[j] = token_j.getId();
+    		h_tokens[j] = token_j;
+    		j++;
+    	}
+    	
+    	
+    	
+    	//Tree of Text
+    	LabeledTree t_tree = new LabeledTree( //
+    	//the parents of the nodes
+    		t_parents,
+    		//the ids of the tokens
+    		t_ids,
+    		//the tokens with all their information
+    		t_tokens);
+    			
+    		//Tree of Hypothesis
+    	LabeledTree h_tree = new LabeledTree( //
+    			//the parents of the nodes
+        		h_parents,
+        		//the ids of the tokens
+        		h_ids,
+        		//the tokens with all their information
+        		h_tokens);
+    	
+    	//store the path of each node containing the token from the node to the root of the tree
+    	FToken[] tokensInT = t_tree.getTokens();
+		for (int z = 0; z < tokensInT.length; z++) {
+			FToken token_z = tokensInT[z];
+			String deprelRelations = getDeprelRelationsFromNodeToRoot(t_tree, token_z.getId() - 1);
+			token_z.setDeprelRelations(deprelRelations);
+		}
+		
+		FToken[] tokensInH = h_tree.getTokens();
+		for (int k = 0; k < tokensInH.length; k++) {
+			FToken token_k = tokensInH[k];
+			String deprelRelations = getDeprelRelationsFromNodeToRoot(h_tree, token_k.getId() - 1);
+			token_k.setDeprelRelations(deprelRelations);
+		}
+    	
+    	
+		System.out.println("t:" + t_tree);
+		System.out.println("h:" + h_tree);
+		
+		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree));
+		Mapping map = new Mapping(t_tree, h_tree);
+		distance = dist.calc(t_tree, h_tree, map);
+		System.out.println("dist:" + distance);
+    	
+		
+		System.err.println();
+	    System.err.println("sequence of operations to transform t into h:");
+	    
+	    List<String> operationSequence = map.getSequence();
+	    for (int g = 0; g < operationSequence.size(); g++) {
+	    	String operation = (String)operationSequence.get(g);
+	    	//e.g. rep:2,3 rep:1,1 rep:0,0 ins:2 rep:3,4 rep:4,5
+	    	//System.err.print(operation + " ");
+	    	String operationName = operation.split(":")[0];
+	    	String nodes = operation.split(":")[1];
+	    	if (nodes.contains(",")) {
+		    	int node1 = Integer.parseInt(nodes.split(",")[0]);
+		    	int node2= Integer.parseInt(nodes.split(",")[1]);
+		    	FToken token1 = t_tree.getToken(node1);
+		    	FToken token2 = h_tree.getToken(node2);
+		    	System.err.println(operationName + ":" + token1 + "-->" + token2);
+	    	}
+	    	else if (operationName.contains("ins")){
+	    		int node = Integer.parseInt(nodes);
+		    	FToken token = h_tree.getToken(node);
+		    	System.err.println(operationName + ":" + token);
+	    	}
+	    	else { //deletion
+	    		int node = Integer.parseInt(nodes);
+		    	FToken token = t_tree.getToken(node);
+		    	System.err.println(operationName + ":" + token);
+	    	}
+	    		
+	    }
+		
     	double normalizedDistanceValue = distance/norm;
     	
     	return new EditDistanceValue(normalizedDistanceValue, false, distance);
                 
      }
+    
+    
+    
+    //given a tree and a node it return the path from the node to the root of the tree
+     private String getDeprelRelationsFromNodeToRoot(LabeledTree tree, int nodeId) {
+		
+		String relations = "";
+		
+		while (nodeId != -1) {
+			String deprel = tree.getToken(nodeId).getDeprel();
+			if (relations.length() == 0)
+				relations = deprel;
+			else
+				relations = relations + "#" + deprel;
+			nodeId = tree.getParent(nodeId);
+		}
+		
+		return relations;
+		
+	}
     
     
     
@@ -1056,6 +1213,40 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     }
     
     
+    
+    
+    // this method accept in input a tree (it has been produced by cas2CoNLLX
+    // and return a fragment containing all the tokens in the tree
+    private Fragment getFragment(String dependencyTree) {
+    	
+    	Fragment fragment = new Fragment();
+    	
+    	//here we need to parse the tree CoNLLX format (i.e. dependencyTree)
+    	//and for each line of it we would need to create an object of the class Token
+    	//and the put it into the Fragment
+    	
+    	String[] lines = dependencyTree.split("\n");
+    	for (int i = 0; i < lines.length; i++) {
+    		String[] fields = lines[i].split("\\s");
+    		for (int j = 0; j < fields.length; j++) {
+    			String tokenId = fields[0];
+    			//all the fields in the text table
+    			//String form = 
+    			//String lemma =
+    			//...............
+    			//String dprel = 
+    		
+    			//Token token_i = new Token(id, form, lemma, null, head, deprel);
+    			//fragment.add(token_i);
+    			
+    		}
+    	}
+    	
+    	return fragment;
+    	
+    }
+    
+    
 
     /*
      * Given a cas (it contains the T view or the H view) in input it produces a
@@ -1146,5 +1337,42 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	}
     	
     }
+    
+    class ScoreImpl implements EditScore {
+		
+		private final LabeledTree tree1, tree2;
+
+		public ScoreImpl(LabeledTree tree1, LabeledTree tree2) {
+			
+			this.tree1 = tree1;
+			this.tree2 = tree2;
+			
+		}
+
+		@Override
+		public double replace(int node1, int node2) {
+			
+			//if (tree1.getLabel(node1) == tree2.getLabel(node2)) {
+			if (tree1.getToken(node1).getForm() == tree2.getToken(node2).getForm()) {
+				return 0;
+			} else {
+				//return 4;
+				return 1;
+			}
+		}
+		
+		@Override
+		public double insert(int node2) {
+			//return 3;
+			return 1;
+		}
+
+		@Override
+		public double delete(int node1) {
+			//return 2;
+			return 1;
+		}
+		
+	}
     
 }
