@@ -9,7 +9,7 @@ public class Fragment {
 	private ArrayList<FToken> tokens;
 	
 	public Fragment(){
-		this.tokens=null;
+		this.tokens= new ArrayList<FToken>();
 	}
 	
 	public Fragment(ArrayList<FToken> tokens){
@@ -25,7 +25,7 @@ public class Fragment {
 	}
 	
 	public void addToken (FToken token){
-		tokens.add(token);
+		this.tokens.add(token);
 	}
 	
 	public void addTokens(ArrayList<FToken> addedTokens){
@@ -34,6 +34,16 @@ public class Fragment {
 	
 	public Iterator<FToken> getIterator(){
 		return tokens.iterator();
+	}
+	
+	public String toString(){
+		String frg = "";
+		for(FToken token:tokens){
+			frg = frg + "\n" + token.toString();
+		}
+		
+		return frg;
+		
 	}
 		
 

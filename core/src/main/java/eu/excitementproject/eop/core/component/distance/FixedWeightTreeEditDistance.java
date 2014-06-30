@@ -554,7 +554,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     
     @Override
     public DistanceValue calculation(JCas jcas) throws DistanceComponentException {
-    	
+
     	DistanceValue distanceValue = null;
     	
     	try {
@@ -773,6 +773,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
      * 
      */
     public DistanceValue distance(Fragment t, Fragment h) throws ArithmeticException {
+
         	
     	
     	//here we need to call the library for calculating tree edit distance
@@ -780,7 +781,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	double distance = 0.0;
     	double norm = 1.0;
     	
-    	//these data structure are necessari for the tree edit distance library
+    	//these data structure are necessary for the tree edit distance library
     	//the parents of the node contating the tokens
     	int[] t_parents = new int[t.size()];
     	int[] h_parents = new int[h.size()];
@@ -800,8 +801,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		FToken token_i = t_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		t_parents[i] = token_i.getHead();
-    		t_ids[i] = token_i.getId();
+    		t_parents[i] = token_i.getHead()-1;
+    		t_ids[i] = token_i.getId()-1;
     		t_tokens[i] = token_i;
     		i++;
     	}
@@ -812,8 +813,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		FToken token_j = h_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		h_parents[j] = token_j.getHead();
-    		h_ids[j] = token_j.getId();
+    		h_parents[j] = token_j.getHead()-1;
+    		h_ids[j] = token_j.getId()-1;
     		h_tokens[j] = token_j;
     		j++;
     	}
@@ -1218,13 +1219,14 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     // this method accept in input a tree (it has been produced by cas2CoNLLX
     // and return a fragment containing all the tokens in the tree
     private Fragment getFragment(String dependencyTree) {
-    	
-    	Fragment fragment = new Fragment();
+    	System.out.println(dependencyTree);
+    	Fragment fragment = null;
     	
     	//here we need to parse the tree CoNLLX format (i.e. dependencyTree)
     	//and for each line of it we would need to create an object of the class Token
     	//and the put it into the Fragment
-    	
+    	try{
+    		fragment = new Fragment();
     	String[] lines = dependencyTree.split("\n");
     	for (int i = 0; i < lines.length; i++) {
     		String[] fields = lines[i].split("\\s");
@@ -1232,14 +1234,18 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     			String tokenId = fields[0];
     			String form = fields[1];
     			String lemma = fields[2];		
-    			String head = fields[6];
+    			int head =(fields[6].equals("_"))? 0 : Integer.parseInt(fields[6]);
     			String deprel = fields[7];
-    			FToken token_i = new FToken(Integer.parseInt(tokenId), form, lemma, null, Integer.parseInt(head), deprel);
+    			FToken token_i = new FToken(Integer.parseInt(tokenId), form, lemma, null, head, deprel);
     			fragment.addToken(token_i);
     			
     		}
     	}
-    	
+    	}
+    	catch (Exception e) {
+    		System.err.println(e.getMessage());
+    		System.exit(0);
+    	}
     	return fragment;
     	
     }
