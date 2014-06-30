@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import org.uimafit.util.JCasUtil;
+
 import org.apache.uima.cas.text.AnnotationIndex;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.tcas.Annotation;
@@ -42,6 +44,7 @@ import static org.apache.uima.fit.util.JCasUtil.select;
 import static org.apache.uima.fit.util.JCasUtil.selectCovered;
 
 
+import eu.excitement.type.alignment.Link;
 import eu.excitementproject.eop.common.component.distance.DistanceCalculation;
 import eu.excitementproject.eop.common.component.distance.DistanceComponentException;
 import eu.excitementproject.eop.common.component.distance.DistanceValue;
@@ -56,12 +59,15 @@ import eu.excitementproject.eop.common.exception.ConfigurationException;
 import eu.excitementproject.eop.common.representation.partofspeech.ByCanonicalPartOfSpeech;
 import eu.excitementproject.eop.common.representation.partofspeech.PartOfSpeech;
 import eu.excitementproject.eop.common.utilities.Utils;
+import eu.excitementproject.eop.common.utilities.configuration.ImplCommonConfig;
+import eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner;
 import eu.excitementproject.eop.core.component.lexicalknowledge.germanet.GermaNetWrapper;
 import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.WikiExtractionType;
 import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.WikiLexicalResource;
 import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.it.WikiLexicalResourceIT;
 import eu.excitementproject.eop.core.component.lexicalknowledge.wordnet.WordnetLexicalResource;
 import eu.excitementproject.eop.core.utilities.dictionary.wordnet.WordNetRelation;
+import eu.excitementproject.eop.lap.implbase.LAP_ImplBase;
 
 
 
@@ -100,7 +106,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	private static final String LONG = "long";
 	private static final String PATH_STOP_WORD = "pathStopWordFile";
 	private static final String STOP_WORD_TYPE = "stopWordRemoval";
-	
+	// Private Members
+	private LexicalAligner aligner;
 	private static final String UNUSED = "_";
 
 	
@@ -138,7 +145,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	private HashSet<String> ignoreSet = null;
 	private String normalizationType;
 
-    static Logger logger = Logger.getLogger(FixedWeightEditDistance.class.getName());
+    static Logger logger = Logger.getLogger(FixedWeightTreeEditDistance.class.getName());
     
     
     /**
@@ -155,6 +162,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	this.mSubstituteWeight = 1.0;
     	this.lexR = new ArrayList<LexicalResource>();
         
+    	InitLexicalAligner();
+    	
     }
 
     
@@ -558,10 +567,15 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	DistanceValue distanceValue = null;
     	
     	try {
+    		//get the alignments between T and H
+    		Map<String,String> alignments = getAlignments(jcas);
+    		
     	    // get Text
 	    	JCas tView = jcas.getView("TextView");
 	    	//the dependency tree of t
 	    	String t_tree = cas2CoNLLX(tView);
+	    	System.out.println(t_tree);
+	    	
 	    	//the text fragment
 	    	Fragment t_fragment = getFragment(t_tree);
 	    	//List<Token> tTokensSequence = getTokenSequences(tView);
@@ -570,13 +584,16 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	    	JCas hView = jcas.getView("HypothesisView"); 
 	    	//the dependency tree of t
 	    	String h_tree = cas2CoNLLX(hView);
+	    	System.out.println(h_tree);
+	    	
+
 	    	//the text fragment
 	    	Fragment h_fragment = getFragment(h_tree);
 	    	//List<Token> hTokensSequence = getTokenSequences(hView);
 
 	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
 	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	distanceValue = distance(t_fragment, h_fragment);
+	    	distanceValue = distance(t_fragment, h_fragment, alignments);
 	    	
     	} catch (Exception e) {
     		throw new DistanceComponentException(e.getMessage());
@@ -612,7 +629,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 
 	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
 	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	distanceValue = distance(t_fragment, h_fragment);
+	    	//distanceValue = distance(t_fragment, h_fragment);
     	 
 
      } catch (Exception e) {
@@ -625,6 +642,54 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
      return v;
     }
     
+    
+    //get alignemnts
+    public Map<String,String> getAlignments(JCas jcas) {
+		
+    	Map<String,String> result = new HashMap<String,String>();
+    	
+		try {
+			
+			// Call the aligner to align T and H of pair 1
+			logger.info("Aligning pair #1");
+			aligner.annotate(jcas);
+			logger.info("Finished aligning pair #1");
+						
+			// Print the alignment of pair 1
+			JCas hypoView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW);
+			
+			for (Link link : JCasUtil.select(hypoView, Link.class)) {
+				
+				logger.info(String.format("Text phrase: %s, " +
+						"hypothesis phrase: %s, " + 
+						"id: %s, confidence: %f, direction: %s", 
+						link.getTSideTarget().getCoveredText(),
+						link.getHSideTarget().getCoveredText(),
+						link.getID(), link.getStrength(),
+						link.getDirection().toString()));
+				
+				        String key = link.getTSideTarget().getCoveredText() + 
+				        		" " + 
+				        		link.getHSideTarget().getCoveredText();
+				        
+				        String value = link.getID() + 
+				        		" " + 
+				        		link.getStrength() + 
+				        		" " +
+				        		link.getDirection().toString();
+				        
+				        System.out.println(key + " --> " + value);
+				        
+				        result.put(key, value);
+				
+			}
+			
+		} catch (Exception e) {
+			logger.info("Could not process first pair. " + e.getMessage());
+		}
+		
+		return result;
+	}
     
     
     /** 
@@ -772,7 +837,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
      * @throws ArithmeticException
      * 
      */
-    public DistanceValue distance(Fragment t, Fragment h) throws ArithmeticException {
+    public DistanceValue distance(Fragment t, Fragment h, Map<String,String> alignments) throws ArithmeticException {
         	
     	
     	//here we need to call the library for calculating tree edit distance
@@ -800,8 +865,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		FToken token_i = t_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		t_parents[i] = token_i.getHead();
-    		t_ids[i] = token_i.getId();
+    		t_parents[i] = token_i.getHead() - 1;
+    		t_ids[i] = token_i.getId() - 1;
     		t_tokens[i] = token_i;
     		i++;
     	}
@@ -812,13 +877,11 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		FToken token_j = h_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		h_parents[j] = token_j.getHead();
-    		h_ids[j] = token_j.getId();
+    		h_parents[j] = token_j.getHead() - 1;
+    		h_ids[j] = token_j.getId() - 1;
     		h_tokens[j] = token_j;
     		j++;
     	}
-    	
-    	
     	
     	//Tree of Text
     	LabeledTree t_tree = new LabeledTree( //
@@ -829,6 +892,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		//the tokens with all their information
     		t_tokens);
     			
+    	
+    	
     		//Tree of Hypothesis
     	LabeledTree h_tree = new LabeledTree( //
     			//the parents of the nodes
@@ -857,7 +922,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		System.out.println("t:" + t_tree);
 		System.out.println("h:" + h_tree);
 		
-		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree));
+		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree, alignments));
 		Mapping map = new Mapping(t_tree, h_tree);
 		distance = dist.calc(t_tree, h_tree, map);
 		System.out.println("dist:" + distance);
@@ -878,7 +943,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		    	int node2= Integer.parseInt(nodes.split(",")[1]);
 		    	FToken token1 = t_tree.getToken(node1);
 		    	FToken token2 = h_tree.getToken(node2);
-		    	System.err.println(operationName + ":" + token1 + "-->" + token2);
+		    	String alignment = alignments.get(token1.getLemma() + " " + token2.getLemma());
+		    	System.err.println("operation:" + operationName + " " + "alignment:" + alignment + " " + token1 + " " + token2);
 	    	}
 	    	else if (operationName.contains("ins")){
 	    		int node = Integer.parseInt(nodes);
@@ -1228,16 +1294,20 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	String[] lines = dependencyTree.split("\n");
     	for (int i = 0; i < lines.length; i++) {
     		String[] fields = lines[i].split("\\s");
-    		for (int j = 0; j < fields.length; j++) {
+    		//for (int j = 0; j < fields.length; j++) {
     			String tokenId = fields[0];
     			String form = fields[1];
     			String lemma = fields[2];		
     			String head = fields[6];
+    			if (head.equals("_")) {
+    				head = "0";
+    				//System.out.println("====================================");
+    			}
     			String deprel = fields[7];
     			FToken token_i = new FToken(Integer.parseInt(tokenId), form, lemma, null, Integer.parseInt(head), deprel);
     			fragment.addToken(token_i);
     			
-    		}
+    		//}
     	}
     	
     	return fragment;
@@ -1321,6 +1391,27 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     }
 
     
+    /**
+	 * Initialize the lexical aligner and prepare the tests
+	 */
+	public void InitLexicalAligner() {
+		
+		try {
+			
+			// Create and initialize the aligner
+			logger.info("Initialize the Lexical Aligner");
+			File configFile = new File(
+					"src/test/resources/configuration-file/LexicalAligner_TreeEditDistance_EN.xml");
+			ImplCommonConfig commonConfig = new ImplCommonConfig(configFile);
+			aligner = new LexicalAligner(commonConfig);
+			
+		} catch (Exception e) {
+			 
+			logger.info("Failed initializing the LexicalAligner" + 
+					e.getMessage());
+		}
+	}
+    
     
     
     /**
@@ -1339,11 +1430,13 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     class ScoreImpl implements EditScore {
 		
 		private final LabeledTree tree1, tree2;
+		private final Map<String,String> alignments;
 
-		public ScoreImpl(LabeledTree tree1, LabeledTree tree2) {
+		public ScoreImpl(LabeledTree tree1, LabeledTree tree2, Map<String,String> alignments) {
 			
 			this.tree1 = tree1;
 			this.tree2 = tree2;
+			this.alignments = alignments;
 			
 		}
 
@@ -1351,7 +1444,9 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		public double replace(int node1, int node2) {
 			
 			//if (tree1.getLabel(node1) == tree2.getLabel(node2)) {
-			if (tree1.getToken(node1).getForm() == tree2.getToken(node2).getForm()) {
+			if (tree1.getToken(node1).getLemma() == tree2.getToken(node2).getLemma()
+					||this.alignments.containsKey(tree1.getToken(node1).getForm() + " " + tree2.getToken(node2).getForm())
+					) {
 				return 0;
 			} else {
 				//return 4;

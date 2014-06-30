@@ -21,12 +21,19 @@ public class FixedWeightTreeEditDistanceTest {
         FixedWeightTreeEditDistance fixedEd
             = new FixedWeightLemmaTreeEditDistance();
         
+
         JCas mycas = null; 
         LAPAccess lap = null; 
         try 
         {
         	lap = new MaltParserEN();
-            mycas = lap.generateSingleTHPairCAS("I live in an appartment.", "I live in an appartment.");
+        	
+        	String t1 = "The assassin was convicted and sentenced to death penalty";
+        	String h1 = "The killer has been accused of murder and doomed to capital punishment";
+        	
+            //mycas = lap.generateSingleTHPairCAS("I live in an appartment.", "I live in an appartment.");
+            mycas = lap.generateSingleTHPairCAS(t1, h1);
+            
             //PlatformCASProber.probeCasAndPrintContent(mycas, System.out);
             
             //generateSingleTHPairCAS("The person is hired as a postdoc.", "The person must have a PhD.", "ENTAILMENT"); 
@@ -39,16 +46,18 @@ public class FixedWeightTreeEditDistanceTest {
         	
         	// get Text
         	JCas tView = mycas.getView("TextView");
-        	String tTree = fixedEd.cas2CoNLLX(tView);
-        	System.out.println(tTree);
+        	//String tTree = fixedEd.cas2CoNLLX(tView);
+        	//System.out.println(tTree);
         	
         	// get Hypothesis
 	    	JCas hView = mycas.getView("HypothesisView"); 
-        	String hTree = fixedEd.cas2CoNLLX(hView);
-        	System.out.println(hTree);
+	    	
+        	//String hTree = fixedEd.cas2CoNLLX(hView);
+        	
+        	//System.out.println(hTree);
         	
         	
-        	//System.out.println(fixedEd.calculation(mycas).getDistance());
+        	System.out.println(fixedEd.calculation(mycas).getDistance());
         	//String[] trees = fixedEd.cas2CoNLLX(mycas);
         	//fixedEd.convert(mycas, null);
         	

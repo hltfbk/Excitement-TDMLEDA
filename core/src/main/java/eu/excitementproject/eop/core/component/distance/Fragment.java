@@ -9,7 +9,7 @@ public class Fragment {
 	private ArrayList<FToken> tokens;
 	
 	public Fragment(){
-		this.tokens=null;
+		this.tokens = new ArrayList<FToken>();
 	}
 	
 	public Fragment(ArrayList<FToken> tokens){
