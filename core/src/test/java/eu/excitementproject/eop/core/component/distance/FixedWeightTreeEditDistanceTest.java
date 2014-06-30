@@ -26,7 +26,7 @@ public class FixedWeightTreeEditDistanceTest {
         try 
         {
         	lap = new MaltParserEN();
-            mycas = lap.generateSingleTHPairCAS("Roberto eats an apple.", "Roberto eats an orange.");
+            mycas = lap.generateSingleTHPairCAS("I live in an appartment.", "I live in an appartment.");
             //PlatformCASProber.probeCasAndPrintContent(mycas, System.out);
             
             //generateSingleTHPairCAS("The person is hired as a postdoc.", "The person must have a PhD.", "ENTAILMENT"); 
@@ -47,7 +47,12 @@ public class FixedWeightTreeEditDistanceTest {
         	String hTree = fixedEd.cas2CoNLLX(hView);
         	//System.out.println(hTree);
         	
+<<<<<<< HEAD
         	System.out.println(fixedEd.calculation(mycas).getDistance());
+=======
+        	
+        	//System.out.println(fixedEd.calculation(mycas).getDistance());
+>>>>>>> upstream/master
         	//String[] trees = fixedEd.cas2CoNLLX(mycas);
         	//fixedEd.convert(mycas, null);
         	
