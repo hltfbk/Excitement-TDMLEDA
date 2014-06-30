@@ -1223,16 +1223,15 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	Fragment fragment = null;
     	
     	//here we need to parse the tree CoNLLX format (i.e. dependencyTree)
-<<<<<<< HEAD
     	//and for each line of it we would need to create an object of the class Token
     	//and the put it into the Fragment
     	try{
     		fragment = new Fragment();
-=======
+
     	//and for each line of it we would need to create an object of the class FToken
     	//and then put it into the Fragment
     	
->>>>>>> upstream/master
+
     	String[] lines = dependencyTree.split("\n");
     	for (int i = 0; i < lines.length; i++) {
     		String[] fields = lines[i].split("\\s");
