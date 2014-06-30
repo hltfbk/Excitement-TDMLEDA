@@ -22,7 +22,7 @@ import eu.excitementproject.eop.lap.PlatformCASProber;
 
 public class MaltParserEnTest {
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test() {		
 		// Set Log4J for the test 
@@ -40,7 +40,7 @@ public class MaltParserEnTest {
 			lap = new MaltParserEN(); // same as default, which is linear
 			
 			// one of the LAPAccess interface: that generates single TH CAS. 
-			aJCas = lap.generateSingleTHPairCAS("Bush used his weekly radio address to try to build support for his plan to allow workers to divert part of their Social Security payroll taxes into private investment accounts", "Mr. Bush is proposing that workers be allowed to divert their payroll taxes into private accounts."); 
+			aJCas = lap.generateSingleTHPairCAS("Bush used his weekly radio address to try to build support for his plan to allow workers to divert part of their Social Security payroll taxes into private investment accounts.", "Mr. Bush is proposing that workers be allowed to divert their payroll taxes into private accounts."); 
 			
 			PlatformCASProber.probeCas(aJCas, System.out); 
 			
