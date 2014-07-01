@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+		<section name="GeneralParameters">
+			<property name="maxPhraseLength">5</property>
+			<property name="gateLemmatizerFileUrl">src/test/resources/model/GATE-3.1/plugins/Tools/resources/morph/default.rul</property>
+		</section>
+		
+        <section name="LexicalResources">
+        
+			<!-- WordNet -->
+			<property name="wordnet">eu.excitementproject.eop.core.component.lexicalknowledge.wordnet.WordnetLexicalResource</property>
+	   
+	        <!-- Catvar -->
+ 			<property name = "catvar">eu.excitementproject.eop.core.component.lexicalknowledge.catvar.CatvarLexicalResource</property>
+ 			
+	   
+	   </section>
+	   
+        
+        <!-- WordNet configuration parameters -->
+        <section name="wordnet">
+        	<property name = "useLemma">false</property>
+        	<property name = "version">3.0</property>
+			<property name = "wordnet-dir">src/test/resources/data/WordNet/3.0/dict.wn.orig</property>
+			<property name = "useFirstSenseOnlyLeft">true</property>
+			<property name = "useFirstSenseOnlyRight">true</property>
+			<property name = "entailing-relations">SYNONYM,DERIVATIONALLY_RELATED,HYPERNYM,INSTANCE_HYPERNYM,MEMBER_HOLONYM,PART_HOLONYM,ENTAILMENT,SUBSTANCE_MERONYM</property>
+			<property name = "wordnet-depth">2</property>
+		</section>
+		
+		<!-- CatVar configuration parameters -->
+		<section name = "catvar">
+			<property name = "useLemma">true</property>
+			<property name = "version">2.1</property>
+			<property name = "catver-file-name">src/test/resources/data/CatVar/catvar21</property>
+		</section>
+		
+</configuration>

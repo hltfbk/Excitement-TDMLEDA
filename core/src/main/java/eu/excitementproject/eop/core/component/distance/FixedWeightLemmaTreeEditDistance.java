@@ -93,7 +93,7 @@ public class FixedWeightLemmaTreeEditDistance extends FixedWeightTreeEditDistanc
     @Override
     public String getComponentName() {
     	
-    	return "FixedWeightLemmaEditDistance";
+    	return "FixedWeightLemmaTreeEditDistance";
     	
     }
     
