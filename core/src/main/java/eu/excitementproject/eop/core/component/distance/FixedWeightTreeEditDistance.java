@@ -99,20 +99,14 @@ import eu.excitementproject.eop.lap.implbase.LAP_ImplBase;
  */
 public class FixedWeightTreeEditDistance implements DistanceCalculation {
 
-	private static final String STOP_WORD_POS = "POS";
-	private static final String STOP_WORD_LIST = "LIST";
-	private static final String STOP_WORD_POS_LIST = "POS,LIST";
-	private static final String IGNORE_CASE = "ignoreCase";
-	private static final String NORMALIZATION_TYPE = "normalizationType";
-	private static final String DEFAULT = "default";
-	private static final String LONG = "long";
-	private static final String PATH_STOP_WORD = "pathStopWordFile";
-	private static final String STOP_WORD_TYPE = "stopWordRemoval";
-	// Private Members
+	/**
+	 * The aligner component that finds the alignments between the tokens in T and those in H
+	 */
 	private LexicalAligner aligner;
-	private static final String UNUSED = "_";
+	/**
+	 * The produce transformations needed to covert T into H
+	 */
     private List<Transformation> transformations;
-	
 	/**
 	 * weight for match
 	 */
@@ -136,24 +130,14 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     /**
 	 * the resource
 	 */
-    @SuppressWarnings("rawtypes")
-	private List<LexicalResource> lexR;
     /**
-	 * stop word removal
-	 */
-    private boolean stopWordRemovalPOS;
-	private boolean ignoreCase;
-    Set<WordNetRelation> relations = new HashSet<WordNetRelation>();
-	private HashSet<String> ignoreSet = null;
-	private String normalizationType;
-
+     *  the logger
+     */
     static Logger logger = Logger.getLogger(FixedWeightTreeEditDistance.class.getName());
     
     
     /**
-     * Construct a fixed weight edit distance with the following constant
-     * weights for edits:
-     * match weight is 0, substitute, insert and delete weights are
+     * Construct a fixed weight edit distance
      */
     @SuppressWarnings("rawtypes")
 	public FixedWeightTreeEditDistance() {
@@ -196,7 +180,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     @Override
     public String getComponentName() {
     
-    	return "FixedWeightLemmaTreeEditDistance";
+    	return "FixedWeightTreeEditDistance";
 	
 	}
     
@@ -238,28 +222,21 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     		Map<String,String> alignments = getAlignments(jcas);
     		
     	    // get Text
-	    	JCas tView = jcas.getView("TextView");
+	    	JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 	    	//the dependency tree of t
 	    	String t_tree = cas2CoNLLX(tView);
-	    	System.out.println(t_tree);
-	    	
+	    	logger.info("T:" + t_tree);
 	    	//the text fragment
 	    	Fragment t_fragment = getFragment(t_tree);
-	    	//List<Token> tTokensSequence = getTokenSequences(tView);
-	    	
 	    	// get Hypothesis
-	    	JCas hView = jcas.getView("HypothesisView"); 
+	    	JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 	    	//the dependency tree of t
 	    	String h_tree = cas2CoNLLX(hView);
-	    	//System.out.println(h_tree);
-	    	
-
+	    	logger.info("H:" + h_tree);
 	    	//the text fragment
 	    	Fragment h_fragment = getFragment(h_tree);
-	    	//List<Token> hTokensSequence = getTokenSequences(hView);
-
-	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
+            //calculate the distance between T and H by using the matches
+	    	//provided by the aligner component.
 	    	distanceValue = distance(t_fragment, h_fragment, alignments);
 	    	
     	} catch (Exception e) {
@@ -313,7 +290,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     
     /*
-     * Get the alignments between T and H by using the set aligner component
+     * Get the alignments between T and H produced by the aligner component
      * 
      * @param jcas the CAS containing T and H
      * 
@@ -359,8 +336,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 				        		"__" +
 				        		link.getDirection().toString();
 				        
-				//logger.info(key + " --> " + value);
-				        
 				result.put(key, value);
 				
 			}
@@ -394,18 +369,20 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	
     	//Creating the Tree of Text
     	LabeledTree t_tree = createTree(t);
-    	System.out.println("t:" + t_tree);
+    	logger.info("T:" + t_tree);
     	
     	//Creating the Tree of Hypothesis
     	LabeledTree h_tree = createTree(h);
-		System.out.println("h:" + h_tree);
+    	logger.info("H:" + h_tree);
 		
-		
+	    //Create a tree for T and H
 		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree, alignments));
 		Mapping map = new Mapping(t_tree, h_tree);
+		//Distance calculation
 		distance = dist.calc(t_tree, h_tree, map);
-		System.out.println("tree edit distance:" + distance);
-	    System.out.println("sequence of operations to transform t into h:");
+		
+		logger.info("Tree edit distance:" + distance);
+	    logger.info("Sequence of transformations:");
 	    
 	    List<String> operationSequence = map.getSequence();
 	    for (int g = 0; g < operationSequence.size(); g++) {
@@ -430,21 +407,21 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    	}
 		    	//Silvia here we need to create an object Transformation containing the following
 		    	//information
-		    	System.err.println("operation:" + operationName + " " + "alignment:" + alignmentType + " token_T:" + token1 + " token_H:" + token2);
+		    	logger.info("operation:" + operationName + " " + "alignment:" + alignmentType + " token_T:" + token1 + " token_H:" + token2);
 	    	}
 	    	else if (operationName.contains("ins")){
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = h_tree.getToken(node);
 		    	//Silvia here we need to create an object Transformation containing the following
 		    	//information
-		    	System.err.println("operation:" + operationName + " token_H:" + token);
+		    	logger.info("operation:" + operationName + " token_H:" + token);
 	    	}
 	    	else { //deletion
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = t_tree.getToken(node);
 		    	//Silvia here we need to create an object Transformation containing the following
 		    	//information
-		    	System.err.println("operation:" + operationName + " token_T:" + token);
+		    	logger.info("operation:" + operationName + " token_T:" + token);
 	    	}
 	    	
 	    	//Silvia here we need to add the created tranformation
@@ -452,9 +429,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    		
 	    }
 		
-    	double normalizedDistanceValue = distance/norm;
-    	
-    	return new EditDistanceValue(normalizedDistanceValue, false, distance);
+    	return new EditDistanceValue(distance, false, distance);
                 
      }
     
