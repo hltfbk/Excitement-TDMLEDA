@@ -44,27 +44,10 @@ public class FixedWeightTreeEditDistanceTest {
         }
         try {
         	
-        	// get Text
-        	JCas tView = mycas.getView("TextView");
-        	//String tTree = fixedEd.cas2CoNLLX(tView);
-        	//System.out.println(tTree);
-        	
-        	// get Hypothesis
-	    	JCas hView = mycas.getView("HypothesisView"); 
-	    	
-        	//String hTree = fixedEd.cas2CoNLLX(hView);
-        	
-        	//System.out.println(hTree);
-        	
-        	
         	System.out.println(fixedEd.calculation(mycas).getDistance());
-        	//String[] trees = fixedEd.cas2CoNLLX(mycas);
-        	//fixedEd.convert(mycas, null);
         	
-        	//System.out.println("T-Tree in CoNLL-X format:" + trees[0]);
-        	//System.out.println("H-Tree in CoNLL-X format:" + trees[1]);
-        	
-        	//assertTrue(fixedEd.calculation(mycas).getDistance() > -1.0);
+            //Silvia here we would need to have the produced transformations
+        	System.out.println(fixedEd.getTransformations());
         	
         } catch(Exception e) {
         	System.err.println(e.getMessage());
