@@ -801,7 +801,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     		FToken token_i = t_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		t_parents[i] = token_i.getHead()-1;
+    		//t_parents[i] = token_i.getHead()-1;
+    		t_parents[i] = token_i.getHead();
     		t_ids[i] = token_i.getId()-1;
     		t_tokens[i] = token_i;
     		i++;
@@ -809,15 +810,19 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	//we are filling the data structure of H
     	Iterator<FToken> h_iterator = h.getIterator();
     	int j = 0;
+    	System.out.println("These are the parents");
     	while (h_iterator.hasNext()) {
     		FToken token_j = h_iterator.next();
     		//we need to subtract -1 given that the data structure of the code requires that
         	//the root is -1 instead of 0;
-    		h_parents[j] = token_j.getHead()-1;
+    		//h_parents[j] = token_j.getHead()-1;
+    		h_parents[j] = token_j.getHead();
+    		System.out.println(token_j.getLemma() + " - " + h_parents[j]);
     		h_ids[j] = token_j.getId()-1;
     		h_tokens[j] = token_j;
     		j++;
     	}
+
     	
     	
     	

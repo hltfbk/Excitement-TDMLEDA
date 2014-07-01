@@ -46,13 +46,12 @@ public class FixedWeightTreeEditDistanceTest {
 	    	JCas hView = mycas.getView("HypothesisView"); 
         	String hTree = fixedEd.cas2CoNLLX(hView);
         	//System.out.println(hTree);
-        	
-<<<<<<< HEAD
+
         	System.out.println(fixedEd.calculation(mycas).getDistance());
-=======
+
         	
         	//System.out.println(fixedEd.calculation(mycas).getDistance());
->>>>>>> upstream/master
+
         	//String[] trees = fixedEd.cas2CoNLLX(mycas);
         	//fixedEd.convert(mycas, null);
         	
