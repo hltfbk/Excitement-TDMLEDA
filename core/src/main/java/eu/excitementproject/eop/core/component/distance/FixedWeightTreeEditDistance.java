@@ -139,7 +139,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     /**
      * Construct a fixed weight edit distance
      */
-    @SuppressWarnings("rawtypes")
+
 	public FixedWeightTreeEditDistance() {
     	
         this.transformations = new ArrayList<Transformation>();
@@ -214,7 +214,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     @Override
     public DistanceValue calculation(JCas jcas) throws DistanceComponentException {
-    	
+
     	DistanceValue distanceValue = null;
     	
     	try {
@@ -360,7 +360,9 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
      * @throws ArithmeticException
      * 
      */
+
     public DistanceValue distance(Fragment t, Fragment h, Map<String,String> alignments) throws ArithmeticException {
+
         	
     	//here we need to call the library for calculating tree edit distance
     	
@@ -369,6 +371,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	
     	//Creating the Tree of Text
     	LabeledTree t_tree = createTree(t);
+
     	logger.info("T:" + t_tree);
     	
     	//Creating the Tree of Hypothesis
@@ -475,19 +478,26 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     // this method accept in input a tree (it has been produced by cas2CoNLLX
     // and return a fragment containing all the tokens in the tree
     private Fragment getFragment(String dependencyTree) {
-    	
-    	Fragment fragment = new Fragment();
+    	System.out.println(dependencyTree);
+    	Fragment fragment = null;
     	
     	//here we need to parse the tree CoNLLX format (i.e. dependencyTree)
+    	//and for each line of it we would need to create an object of the class Token
+    	//and the put it into the Fragment
+    	try{
+    		fragment = new Fragment();
+
     	//and for each line of it we would need to create an object of the class FToken
     	//and then put it into the Fragment
     	
+
     	String[] lines = dependencyTree.split("\n");
     	for (int i = 0; i < lines.length; i++) {
     		String[] fields = lines[i].split("\\s");
     		//for (int j = 0; j < fields.length; j++) {
     			int tokenId = Integer.parseInt(fields[0]) - 1;
     			String form = fields[1];
+
     			String lemma = fields[2];	
     			String pos = fields[3];	
     			int head;
@@ -500,11 +510,16 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     			
     			String deprel = fields[7];
     			FToken token_i = new FToken(tokenId, form, lemma, pos, head, deprel);
+
     			fragment.addToken(token_i);
     			
     		//}
     	}
-    	
+    	}
+    	catch (Exception e) {
+    		System.err.println(e.getMessage());
+    		System.exit(0);
+    	}
     	return fragment;
     	
     }

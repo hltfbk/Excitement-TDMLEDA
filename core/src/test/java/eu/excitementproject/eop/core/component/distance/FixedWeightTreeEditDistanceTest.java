@@ -44,8 +44,9 @@ public class FixedWeightTreeEditDistanceTest {
         }
         try {
         	
+
         	System.out.println(fixedEd.calculation(mycas).getDistance());
-        	
+
             //Silvia here we would need to have the produced transformations
         	System.out.println(fixedEd.getTransformations());
         	
