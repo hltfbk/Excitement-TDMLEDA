@@ -139,7 +139,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     /**
      * Construct a fixed weight edit distance
      */
-    @SuppressWarnings("rawtypes")
+
 	public FixedWeightTreeEditDistance() {
     	
         this.transformations = new ArrayList<Transformation>();
