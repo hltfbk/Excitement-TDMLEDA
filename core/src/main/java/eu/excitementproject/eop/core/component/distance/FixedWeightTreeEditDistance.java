@@ -97,7 +97,7 @@ import eu.excitementproject.eop.lap.implbase.LAP_ImplBase;
  * @author Roberto Zanoli
  * 
  */
-public abstract class FixedWeightTreeEditDistance implements DistanceCalculation {
+public class FixedWeightTreeEditDistance implements DistanceCalculation {
 
 	private static final String STOP_WORD_POS = "POS";
 	private static final String STOP_WORD_LIST = "LIST";
@@ -116,19 +116,19 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	/**
 	 * weight for match
 	 */
-    private double mMatchWeight;
+    private double mMatchWeight = 0;
     /**
 	 * weight for delete
 	 */
-    private double mDeleteWeight;
+    private double mDeleteWeight = 1;
     /**
 	 * weight for insert
 	 */
-    private double mInsertWeight;
+    private double mInsertWeight = 1;
     /**
 	 * weight for substitute
 	 */
-    private double mSubstituteWeight;
+    private double mSubstituteWeight = 1;
     /**
 	 * the activated instance
 	 */
@@ -158,13 +158,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     @SuppressWarnings("rawtypes")
 	public FixedWeightTreeEditDistance() {
     	
-    	this.mMatchWeight = 0.0;
-    	this.mDeleteWeight = 0.0;
-    	this.mInsertWeight = 1.0;
-    	this.mSubstituteWeight = 1.0;
-    	this.lexR = new ArrayList<LexicalResource>();
         this.transformations = new ArrayList<Transformation>();
-    	InitLexicalAligner();
+    	initLexicalAligner();
     	
     }
 
@@ -186,9 +181,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	        //get the platform name value table
 	        NameValueTable platformNameValueTable = config.getSection("PlatformConfiguration");
 	        
-	       //get the platform language value
-	        String language = platformNameValueTable.getString("language");
-	        
 	        //get the selected component
 	    	NameValueTable componentNameValueTable = config.getSection(this.getClass().getCanonicalName());
     		
@@ -200,120 +192,13 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	
     }
     
-
-	/** 
-	 * Constructor used to create this object. All the main parameters of the component are
-	 * exposed in the constructor. Here is an example on how it can be used. 
-	 * 
-	 * <pre>
-	 * {@code
-	 * 
-	 * //setting the weights of the edit distance operations
-	 * double mMatchWeight = 0.0;
-	 * double mDeleteWeight = 0.0;
-	 * double mInsertWeight = 1.0;
-	 * double mSubstituteWeight = 1.0;
-	 * //enable stop words so that stop words will be removed.
-	 * boolean stopWordRemoval = true;
-	 * //the component has to work on a data set for Italian language
-	 * String language = "IT";
-	 * //setting the resources: wikipedia and wordnet will be used
-	 * Map<String,String> resources = new HasMap<String,String>();
-	 * resources.put("wordnet", "/tmp/wordnet/");
-	 * resources.put("wikipedia", "jdbc:mysql://nathrezim:3306/wikilexresita#johnsmith#mypasswd");
-	 * //creating an instance of the FixedWeightTokenEditDistance component
-	 * FixedWeightEditDistance fwed = 
-	 * new FixedWeightTokenEditDistance(mMatchWeight, mDeleteWeight, mInsertWeight, mSubstituteWeight, stopWordRemoval, language, resources)
-	 * 
-	 * }
-	 * </pre>
-	 * 
-	 * @param mMatchWeight weight for match
-     * @param mDeleteWeight weight for delete
-     * @param mInsertWeight weight for insert
-     * @param mSubstituteWeight weight for substitute
-     * @param stopWordRemoval if stop words has to be removed or not; Possible values are: true, false
-     * @param language the language of the data the component has to deal with; Possible values are: DE, EN, IT
-     * @param resources the external resources the component has to use; it is a key/value pairs table.
-     * The supported resources with their parameters are (reported as key/value pairs):
-     * wordnet, path of the resource residing in the file system, e.g. /tmp/wordnet/
-     * wikipedia, dbConnection#dbUser#dbPasswd, e.g. jdbc:mysql://nathrezim:3306/wikilexresita#johnsmith#mypasswd
-     * 
-	 */
-    public FixedWeightTreeEditDistance(double mMatchWeight, double mDeleteWeight, double mInsertWeight, double mSubstituteWeight, boolean stopWordRemoval, String language, Map<String,String> resources) throws ConfigurationException, ComponentException {
-    
-    	this();
-        
-    	logger.info("Creating an instance of " + this.getComponentName() + " ...");
-    
-    	this.mMatchWeight = mMatchWeight;
-    	this.mDeleteWeight = mDeleteWeight;
-    	this.mInsertWeight = mInsertWeight;
-    	this.mSubstituteWeight = mSubstituteWeight;
-    	
-		logger.info("done.");
-    	
-    }
-    
-    
-    /**
-	 * set the weight of the match edit distant operation
-	 * 
-	 * @param mMatchWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmMatchWeight(double mMatchWeight) {
-    	
-    	this.mMatchWeight = mMatchWeight;
-    	
-    }
-    
-    
-    /**
-	 * set the weight of the delete edit distant operation
-	 * 
-	 * @param mDeleteWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmDeleteWeight(double mDeleteWeight) {
-    	
-    	this.mDeleteWeight = mDeleteWeight;
-    	
-    }
-    
-    
-    /**
-	 * set the weight of the insert edit distant operation
-	 * 
-	 * @param mInsertWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmInsertWeight(double mInsertWeight ) {
-    	
-    	this.mInsertWeight = mInsertWeight;
-    	
-    }
-    
-    
-    /**
-	 * set the weight of the substitute edit distant operation
-	 * 
-	 * @param mSubstituteWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmSubstituteWeight(double mSubstituteWeight) {
-    	
-    	this.mSubstituteWeight = mSubstituteWeight;
-    	
-    }
-   
     
     @Override
-    public abstract String getComponentName();
+    public String getComponentName() {
+    
+    	return "FixedWeightLemmaTreeEditDistance";
+	
+	}
     
     
     @Override
@@ -335,14 +220,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	 */
 	public void shutdown() {
 		
-		logger.info(this.getComponentName() + " shutting down ...");
-		
-		try {
-			for (int i = 0; i < lexR.size(); i++)
-				lexR.get(i).close();
-		} catch (Exception e) {
-			logger.warning(e.getMessage());
-    	}
+		//Silvia you have to shutdown the lexical component
+		//
 		
 		logger.info("done.");
 		
@@ -395,6 +274,8 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     @Override
     public Vector<Double> calculateScores(JCas jcas) throws ScoringComponentException {
     
+    //to be checked by roberto
+    	
      DistanceValue distanceValue = null;
      Vector<Double> v = new Vector<Double>();
     
@@ -492,81 +373,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	}
     
     
-    /**
-     * Returns a string based representation of the fixed weight
-     * edit distance's parameters.
-     *
-     * @return string-based representation of this distance.
-     */
-    public String toString() {
-    	
-        StringBuilder sb = new StringBuilder();
-        
-        sb.append("costs:");
-        sb.append("  match weight=" + mMatchWeight);
-        sb.append("  insert weight=" + mInsertWeight);
-        sb.append("  delete weight=" + mDeleteWeight);
-        sb.append("  substitute weight=" + mSubstituteWeight);
-        
-        return sb.toString();
-        
-    }
-
-
-    /**
-     * Returns the constant weight of matching the specified token.
-     *
-     * @param tMatched token matched.
-     * @return weight of matching token.
-     */
-    public double getmMatchWeight(Token tMatched) {
-    	
-        return mMatchWeight;
-        
-    }
-    
-    
-    /**
-     * Returns the constant weight of deleting the specified token.
-     *
-     * @param tDeleted token deleted.
-     * @return weight of deleting token.
-     */
-    public double getmDeleteWeight(Token tDeleted) {
-    	
-        return mDeleteWeight;
-        
-    }
-
-    
-    /**
-     * Returns the constant weight of inserting the specified token.
-     *
-     * @param tInserted token inserted.
-     * @return weight of inserting token.
-     */
-    public double getmInsertWeight(Token tInserted) {
-
-        return mInsertWeight;
-        
-    }
-
-    
-    /**
-     * Returns the constant weight of substituting the inserted token for
-     * the deleted token.
-     *
-     * @param tDeleted deleted token.
-     * @param tInserted inserted token.
-     * @return the weight of substituting the inserted token for
-     * the deleted token.
-     */
-    public double getmSubstituteWeight(Token tDeleted, Token tInserted) {
-
-        return mSubstituteWeight;
-        
-    }
-    
     
     /**
      * Returns the weighted edit distance between T and H.
@@ -590,12 +396,12 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	
     	//Creating the Tree of Text
     	LabeledTree t_tree = createTree(t);
-    	//System.out.println("t:" + t_tree);
 
-    	
+    	System.out.println("t:" + t_tree);
+
     	//Creating the Tree of Hypothesis
     	LabeledTree h_tree = createTree(h);
-		//System.out.println("h:" + h_tree);
+		System.out.println("h:" + h_tree);
 		
 		
 		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree, alignments));
@@ -692,26 +498,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	return lTree;
     	
     }
-    
-    
-	private boolean compare(String tokenBaseForm, String tokenBaseForm2) {
-		if(ignoreCase){
-			return tokenBaseForm.equalsIgnoreCase(tokenBaseForm2);
-		}	
-		return tokenBaseForm.equals(tokenBaseForm2);
-	}
-
-	/**
-     * Returns the token base form. It is the form of the token
-     * or its lemma.
-     *
-     * @param token the token
-     * 
-     * @return the base form of the token
-     * 
-     */
-    public abstract String getTokenBaseForm(Token token);
-    
     
     
     // this method accept in input a tree (it has been produced by cas2CoNLLX
@@ -843,7 +629,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     /**
 	 * Initialize the lexical aligner and prepare the tests
 	 */
-	public void InitLexicalAligner() {
+	public void initLexicalAligner() {
 		
 		try {
 			
@@ -893,25 +679,30 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		public double replace(int node1, int node2) {
 			
 			
-			if ( (tree1.getLabel(node1) == tree2.getLabel(node2)) && 
-			tree1.getToken(node1).getLemma().equalsIgnoreCase(tree2.getToken(node2).getLemma())) {
-				return 0;
+			if ( tree1.getLabel(node1) == tree2.getLabel(node2))
+			//tree1.getToken(node1).getLemma().equalsIgnoreCase(tree2.getToken(node2).getLemma())) 
+					{
+				//return 0;
+				return mMatchWeight;
 			} else {
 				//return 4;
-				return 1;
+				//return 1;
+				return mSubstituteWeight;
 			}
 		}
 		
 		@Override
 		public double insert(int node2) {
 			//return 3;
-			return 1;
+			//return 1;
+			return mInsertWeight;
 		}
 
 		@Override
 		public double delete(int node1) {
 			//return 2;
-			return 1;
+			//return 1;
+			return mDeleteWeight;
 		}
 		
 	}

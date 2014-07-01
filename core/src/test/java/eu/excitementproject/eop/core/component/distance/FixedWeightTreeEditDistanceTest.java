@@ -19,7 +19,7 @@ public class FixedWeightTreeEditDistanceTest {
 	public void test() {
     	
         FixedWeightTreeEditDistance fixedEd
-            = new FixedWeightLemmaTreeEditDistance();
+            = new FixedWeightTreeEditDistance();
         
 
         JCas mycas = null; 
