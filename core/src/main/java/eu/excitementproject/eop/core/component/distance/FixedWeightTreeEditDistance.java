@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+
+
 import org.uimafit.util.JCasUtil;
 
 import org.apache.uima.cas.text.AnnotationIndex;
@@ -25,6 +27,7 @@ import org.apache.uima.jcas.tcas.Annotation;
 import treedist.EditScore;
 import treedist.Mapping;
 import treedist.TreeEditDistance;
+import treedist.TreeImpl;
 
 import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.ART;
 import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.CARD;
@@ -39,7 +42,6 @@ import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence;
 import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Token;
 import de.tudarmstadt.ukp.dkpro.core.api.syntax.type.dependency.Dependency;
 
-import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.uima.fit.util.JCasUtil.select;
 import static org.apache.uima.fit.util.JCasUtil.selectCovered;
 
@@ -109,7 +111,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	// Private Members
 	private LexicalAligner aligner;
 	private static final String UNUSED = "_";
-
+    private List<Transformation> transformations;
 	
 	/**
 	 * weight for match
@@ -161,7 +163,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	this.mInsertWeight = 1.0;
     	this.mSubstituteWeight = 1.0;
     	this.lexR = new ArrayList<LexicalResource>();
-        
+        this.transformations = new ArrayList<Transformation>();
     	InitLexicalAligner();
     	
     }
@@ -189,133 +191,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	        
 	        //get the selected component
 	    	NameValueTable componentNameValueTable = config.getSection(this.getClass().getCanonicalName());
-	    	
-	    	//activate/deactivate stop word removal
-			if (componentNameValueTable.getString(STOP_WORD_TYPE) != null) {
-				stopWordRemovalPOS = Boolean.parseBoolean(componentNameValueTable.getString(STOP_WORD_TYPE));
-				if (stopWordRemovalPOS == true)
-					logger.info("Stop word pos removal activated.");
-				else {
-					if (STOP_WORD_POS.equalsIgnoreCase(componentNameValueTable.getString(STOP_WORD_TYPE))) {
-						stopWordRemovalPOS = true;
-						logger.info("Stop word pos removal activated.");
-					} else if (STOP_WORD_LIST.equalsIgnoreCase(componentNameValueTable.getString(STOP_WORD_TYPE))
-							&& componentNameValueTable.getString(PATH_STOP_WORD) != null) {
-						stopWordRemovalPOS = false;
-						initializeStopWordList(componentNameValueTable.getString(PATH_STOP_WORD));
-						logger.info("Stop word list removal activated.");
-					} else if (STOP_WORD_POS_LIST.equalsIgnoreCase(componentNameValueTable.getString(STOP_WORD_TYPE))
-							&& componentNameValueTable.getString(PATH_STOP_WORD) != null) {
-						stopWordRemovalPOS = true;
-						initializeStopWordList(componentNameValueTable.getString(PATH_STOP_WORD));
-						logger.info("Stop word list removal activated.");
-					}
-					logger.info("Stop word removal deactivated.");
-				}
-			}
-    		else {
-    			stopWordRemovalPOS = false;
-        		logger.info("Stop word removal deactivated.");
-    		}
-	    	
-	    	//activate ignore case
-	    	if (componentNameValueTable.getString(IGNORE_CASE) != null) {
-    			ignoreCase = Boolean.parseBoolean(componentNameValueTable.getString(IGNORE_CASE));
-    			logger.info("Ignore case set to "+ignoreCase);
-    		}
-    		else {
-    			ignoreCase = false;
-        		logger.info("Ignore case deactivated.");
-    		}
-	    	
-	    	//activate normalization
-	    	if (componentNameValueTable.getString(NORMALIZATION_TYPE) != null) {
-    			normalizationType = componentNameValueTable.getString(NORMALIZATION_TYPE);
-        		logger.info("Normalization type setted to "+normalizationType);
-    		}
-    		else {
-    			normalizationType = DEFAULT;
-        		logger.info("Normalization type setted to DEFAULT");
-    		}
-	    	
-	    	//get the selected instances
-	    	instances = componentNameValueTable.getString("instances");
-	    	
-    		String[] instancesList = instances.split(",");
-    		
-    		for (int i = 0; i < instancesList.length; i++) {
-    			
-    			String instance = instancesList[i];
-    			
-    			if (instance.equals("basic")) {
-    				//nothing to do
-    			}
-    			else if (instance.equals("wordnet")) {
-	    			
-	    	    	//get the parameters from the selected instance
-	    	    	NameValueTable instanceNameValueTable = config.getSubSection(this.getClass().getCanonicalName(), instance);
-	        	
-		    		String multiWordnet = instanceNameValueTable.getString("path");
-		    		
-		    		if (language.equals("IT") && multiWordnet != null && !multiWordnet.equals("")) {
-			    		try {
-			    			
-			    			initializeWordnet(multiWordnet);
-			    			
-			    		} catch (LexicalResourceException e) {
-			    			throw new ComponentException(e.getMessage());
-			    		}
-		    		}
-			    	else if (language.equals("EN") && multiWordnet != null && !multiWordnet.equals("")) {
-			    		try {
-			    			
-			    			initializeWordnet(multiWordnet);
-			    			
-			    		} catch (LexicalResourceException e) {
-			    			throw new ComponentException(e.getMessage());
-			    		}
-			    	}
-			    	else if (language.equals("DE") && multiWordnet != null && !multiWordnet.equals("")) {
-			    		try {
-			    			
-			    			initializeGermaNet(multiWordnet);
-			    			
-			    		} catch (LexicalResourceException e) {
-			    			throw new ComponentException(e.getMessage());
-			    		}
-			    	}
-	    		
-	    		}
-	    		else if (instance.equals("wikipedia")) {
-	    			
-	    	    	//get the parameters from the selected instance
-	    	    	NameValueTable instanceNameValueTable = config.getSubSection(this.getClass().getCanonicalName(), instance);
-	        	
-	    			String dbConnection = instanceNameValueTable.getString("dbconnection");
-	    			String dbUser = instanceNameValueTable.getString("dbuser");
-	    			String dbPasswd = instanceNameValueTable.getString("dbpasswd");
-		    		
-		    		if (language.equals("IT")) {
-			    		try {
-			    			
-			    			initializeItalianWikipedia(dbConnection, dbUser, dbPasswd);
-			    			
-			    		} catch (LexicalResourceException e) {
-			    			throw new ComponentException(e.getMessage());
-			    		}
-		    		}
-		    		else if (language.equals("EN")) {
-			    		try {
-			    			
-			    			initializeEnglishWikipedia(dbConnection, dbUser, dbPasswd);
-			    			
-			    		} catch (LexicalResourceException e) {
-			    			throw new ComponentException(e.getMessage());
-			    		}
-		    		}
-	    		}
-	    		
-    		}
     		
     	} catch (ConfigurationException e) {
     		throw new ComponentException(e.getMessage());
@@ -325,23 +200,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	
     }
     
-    
-    private void initializeStopWordList(String path) {
-    	File sourceFile = new File(path);
-    	try {
-			BufferedReader br = new BufferedReader(new FileReader(sourceFile));
-			ignoreSet = new HashSet<String>();
-			String line;
-			while ((line = br.readLine()) != null) {
-				ignoreSet.add(line);
-			}
-			br.close();
-		} catch (Exception e) {
-			logger.info("Stop word list file not found or unreadable");
-		}
-		
-	}
-
 
 	/** 
 	 * Constructor used to create this object. All the main parameters of the component are
@@ -393,82 +251,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	this.mInsertWeight = mInsertWeight;
     	this.mSubstituteWeight = mSubstituteWeight;
     	
-        this.stopWordRemovalPOS = stopWordRemoval;
-	    if (this.stopWordRemovalPOS) {
-	    	logger.info("Stop word removal activated.");
-    	}
-    	else {
-        	logger.info("Stop word removal deactivated.");
-    	}
-	    	
-	    if (resources != null && resources.containsKey("wordnet")) {
-	    			
-	    	//Wordnet path
-	    	String multiWordnet = resources.get("wordnet");
-		    		
-	    	if (language.equals("IT") && multiWordnet != null && !multiWordnet.equals("")) {
-	    		try {
-			    			
-	    			initializeWordnet(multiWordnet);
-			    			
-	    		} catch (LexicalResourceException e) {
-	    			throw new ComponentException(e.getMessage());
-	    		}
-	    	}
-	    	else if (language.equals("EN") && multiWordnet != null && !multiWordnet.equals("")) {
-	    		try {
-			    			
-	    			initializeWordnet(multiWordnet);
-			    			
-	    		} catch (LexicalResourceException e) {
-	    			throw new ComponentException(e.getMessage());
-	    		}
-	    	}
-	    	else if (language.equals("DE") && multiWordnet != null && !multiWordnet.equals("")) {
-	    		try {
-			    			
-	    			initializeGermaNet(multiWordnet);
-			    			
-	    		} catch (LexicalResourceException e) {
-	    			throw new ComponentException(e.getMessage());
-	    		}
-	    	}
-	    	
-	    }
-	    	
-		if (resources != null && resources.containsKey("wikipedia")) {
-	    			
-			//Wikipedia DB connection parameters
-			String wikipediaConnection = resources.get("wikipedia");
-		    	
-			if (wikipediaConnection != null) { 
-		    	
-				String dbConnection = wikipediaConnection.split("#")[0];
-				String dbUser = wikipediaConnection.split("#")[1];
-				String dbPasswd = wikipediaConnection.split("#")[2];
-		    		
-				if (language.equals("IT")) {
-					try {
-			    			
-						initializeItalianWikipedia(dbConnection, dbUser, dbPasswd);
-			    			
-					} catch (LexicalResourceException e) {
-						throw new ComponentException(e.getMessage());
-					}
-		    	}
-		    	else if (language.equals("EN")) {
-			    	try {
-			    			
-			    		initializeEnglishWikipedia(dbConnection, dbUser, dbPasswd);
-			    			
-			    	} catch (LexicalResourceException e) {
-			    		throw new ComponentException(e.getMessage());
-			    	}
-		    	}
-	    	}
-	    		
-    	}
-    		
 		logger.info("done.");
     	
     }
@@ -541,6 +323,12 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	
     }
     
+    public List<Transformation> getTransformations() {
+    	
+    	return this.transformations;
+    	
+    }
+    
     
     /** 
 	 * shutdown the resources
@@ -584,7 +372,7 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	    	JCas hView = jcas.getView("HypothesisView"); 
 	    	//the dependency tree of t
 	    	String h_tree = cas2CoNLLX(hView);
-	    	System.out.println(h_tree);
+	    	//System.out.println(h_tree);
 	    	
 
 	    	//the text fragment
@@ -643,17 +431,29 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     }
     
     
-    //get alignemnts
-    public Map<String,String> getAlignments(JCas jcas) {
+    /*
+     * Get the alignments between T and H by using the set aligner component
+     * 
+     * @param jcas the CAS containing T and H
+     * 
+     * @return key value pairs (e.g. assassin__killer --> WORDNET__3.0__HYPERNYM__0.5__TtoH) where key 
+     * represents the tokens one in T and the other in H that have been alignment (e.g. token1_T__token5_H; 
+     * a `__` character is used to separate the 2 tokens).
+     * The value is instead the resource, the resource version, the relation that has been used to do the
+     * alignment. Other information is about the strength of the alignment and the direction of the alignment
+     * itself, e.g. WORDNET__3.0__HYPERNYM__0.5__TtoH
+     * 
+     */
+    private Map<String,String> getAlignments(JCas jcas) {
 		
     	Map<String,String> result = new HashMap<String,String>();
     	
 		try {
 			
 			// Call the aligner to align T and H of pair 1
-			logger.info("Aligning pair #1");
+			logger.info("aligning ...");
 			aligner.annotate(jcas);
-			logger.info("Finished aligning pair #1");
+			logger.info("done.");
 						
 			// Print the alignment of pair 1
 			JCas hypoView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW);
@@ -661,93 +461,37 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 			for (Link link : JCasUtil.select(hypoView, Link.class)) {
 				
 				logger.info(String.format("Text phrase: %s, " +
-						"hypothesis phrase: %s, " + 
+						"Hypothesis phrase: %s, " + 
 						"id: %s, confidence: %f, direction: %s", 
 						link.getTSideTarget().getCoveredText(),
 						link.getHSideTarget().getCoveredText(),
 						link.getID(), link.getStrength(),
 						link.getDirection().toString()));
 				
-				        String key = link.getTSideTarget().getCoveredText() + 
-				        		" " + 
+				String key = link.getTSideTarget().getCoveredText() + 
+				        		"__" + 
 				        		link.getHSideTarget().getCoveredText();
 				        
-				        String value = link.getID() + 
-				        		" " + 
+				String value = link.getID() + 
+				        		"__" + 
 				        		link.getStrength() + 
-				        		" " +
+				        		"__" +
 				        		link.getDirection().toString();
 				        
-				        System.out.println(key + " --> " + value);
+				//logger.info(key + " --> " + value);
 				        
-				        result.put(key, value);
+				result.put(key, value);
 				
 			}
 			
 		} catch (Exception e) {
-			logger.info("Could not process first pair. " + e.getMessage());
+			logger.info("Could not process the pair. " + e.getMessage());
 		}
 		
 		return result;
 	}
     
     
-    /** 
-	 * Returns a list of tokens contained in the specified CAS. Stop words can be removed.
-	 * 
-     * @param jcas the CAS
-     * 
-     * @return the list of tokens in the CAS.
-     *
-	 */
-    private List<Token> getTokenSequences(JCas jcas) {
-    	
-    	List<Token> tokensList = new ArrayList<Token>();
-    	
-    	AnnotationIndex<Annotation> tokenIndex = jcas.getAnnotationIndex(Token.type);
-    	
-    	Iterator<Annotation> tokenIter = tokenIndex.iterator();
-    	
-    	while(tokenIter.hasNext()) {
-    		
-    		Token curr = (Token) tokenIter.next();
-    		
-    		// stop word removal
-			if (stopWordRemovalPOS && ignoreSet == null) {
-				if (curr.getPos().getTypeIndexID() != PP.typeIndexID
-						&& curr.getPos().getTypeIndexID() != PUNC.typeIndexID
-						&& curr.getPos().getTypeIndexID() != ART.typeIndexID
-						&& curr.getPos().getTypeIndexID() != CONJ.typeIndexID
-						&& curr.getPos().getTypeIndexID() != CARD.typeIndexID
-						&& curr.getPos().getTypeIndexID() != O.typeIndexID
-						&& curr.getPos().getTypeIndexID() != POS.typeIndexID) {
-					tokensList.add(curr);
-				}
-			} else if (!stopWordRemovalPOS && ignoreSet != null) {
-				if (!ignoreSet.contains(getTokenBaseForm(curr))) {
-					tokensList.add(curr);
-				}
-			} else if(stopWordRemovalPOS && ignoreSet != null){
-				if(curr.getPos().getTypeIndexID() != PP.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != PUNC.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != ART.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != CONJ.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != CARD.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != O.typeIndexID &&
-		    			curr.getPos().getTypeIndexID() != POS.typeIndexID &&
-		    			!ignoreSet.contains(getTokenBaseForm(curr))){
-		    					tokensList.add(curr);				
-		    				}
-			}
-    		else
-    			tokensList.add(curr);
-    	}
-    	
-    	return tokensList;
-    	
-    }
-    
-
     /**
      * Returns a string based representation of the fixed weight
      * edit distance's parameters.
@@ -824,8 +568,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     }
     
     
-    
-    
     /**
      * Returns the weighted edit distance between T and H.
      * 
@@ -839,97 +581,25 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
      */
     public DistanceValue distance(Fragment t, Fragment h, Map<String,String> alignments) throws ArithmeticException {
         	
-    	
     	//here we need to call the library for calculating tree edit distance
     	
     	double distance = 0.0;
     	double norm = 1.0;
     	
-    	//these data structure are necessari for the tree edit distance library
-    	//the parents of the node contating the tokens
-    	int[] t_parents = new int[t.size()];
-    	int[] h_parents = new int[h.size()];
+    	//Creating the Tree of Text
+    	LabeledTree t_tree = createTree(t);
+    	//System.out.println("t:" + t_tree);
     	
-    	//the ids of the tokens
-    	int[] t_ids = new int[t.size()];
-    	int[] h_ids = new int[h.size()];
-    	
-    	//the tokens themselves
-    	FToken[] t_tokens = new FToken[t.size()];
-    	FToken[] h_tokens = new FToken[h.size()];
-    	
-    	//we are filling the data structure of T
-    	Iterator<FToken> t_iterator = t.getIterator();
-    	int i = 0;
-    	while (t_iterator.hasNext()) {
-    		FToken token_i = t_iterator.next();
-    		//we need to subtract -1 given that the data structure of the code requires that
-        	//the root is -1 instead of 0;
-    		t_parents[i] = token_i.getHead() - 1;
-    		t_ids[i] = token_i.getId() - 1;
-    		t_tokens[i] = token_i;
-    		i++;
-    	}
-    	//we are filling the data structure of H
-    	Iterator<FToken> h_iterator = h.getIterator();
-    	int j = 0;
-    	while (h_iterator.hasNext()) {
-    		FToken token_j = h_iterator.next();
-    		//we need to subtract -1 given that the data structure of the code requires that
-        	//the root is -1 instead of 0;
-    		h_parents[j] = token_j.getHead() - 1;
-    		h_ids[j] = token_j.getId() - 1;
-    		h_tokens[j] = token_j;
-    		j++;
-    	}
-    	
-    	//Tree of Text
-    	LabeledTree t_tree = new LabeledTree( //
-    	//the parents of the nodes
-    		t_parents,
-    		//the ids of the tokens
-    		t_ids,
-    		//the tokens with all their information
-    		t_tokens);
-    			
-    	
-    	
-    		//Tree of Hypothesis
-    	LabeledTree h_tree = new LabeledTree( //
-    			//the parents of the nodes
-        		h_parents,
-        		//the ids of the tokens
-        		h_ids,
-        		//the tokens with all their information
-        		h_tokens);
-    	
-    	//store the path of each node containing the token from the node to the root of the tree
-    	FToken[] tokensInT = t_tree.getTokens();
-		for (int z = 0; z < tokensInT.length; z++) {
-			FToken token_z = tokensInT[z];
-			String deprelRelations = getDeprelRelationsFromNodeToRoot(t_tree, token_z.getId() - 1);
-			token_z.setDeprelRelations(deprelRelations);
-		}
+    	//Creating the Tree of Hypothesis
+    	LabeledTree h_tree = createTree(h);
+		//System.out.println("h:" + h_tree);
 		
-		FToken[] tokensInH = h_tree.getTokens();
-		for (int k = 0; k < tokensInH.length; k++) {
-			FToken token_k = tokensInH[k];
-			String deprelRelations = getDeprelRelationsFromNodeToRoot(h_tree, token_k.getId() - 1);
-			token_k.setDeprelRelations(deprelRelations);
-		}
-    	
-    	
-		System.out.println("t:" + t_tree);
-		System.out.println("h:" + h_tree);
 		
 		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree, alignments));
 		Mapping map = new Mapping(t_tree, h_tree);
 		distance = dist.calc(t_tree, h_tree, map);
-		System.out.println("dist:" + distance);
-    	
-		
-		System.err.println();
-	    System.err.println("sequence of operations to transform t into h:");
+		System.out.println("tree edit distance:" + distance);
+	    System.out.println("sequence of operations to transform t into h:");
 	    
 	    List<String> operationSequence = map.getSequence();
 	    for (int g = 0; g < operationSequence.size(); g++) {
@@ -938,24 +608,41 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 	    	//System.err.print(operation + " ");
 	    	String operationName = operation.split(":")[0];
 	    	String nodes = operation.split(":")[1];
-	    	if (nodes.contains(",")) {
+	    	if (operationName.contains("rep")) {
 		    	int node1 = Integer.parseInt(nodes.split(",")[0]);
 		    	int node2= Integer.parseInt(nodes.split(",")[1]);
 		    	FToken token1 = t_tree.getToken(node1);
 		    	FToken token2 = h_tree.getToken(node2);
-		    	String alignment = alignments.get(token1.getLemma() + " " + token2.getLemma());
-		    	System.err.println("operation:" + operationName + " " + "alignment:" + alignment + " " + token1 + " " + token2);
+		    	String alignmentType = null;
+		    	if (token1.getLemma().equalsIgnoreCase(token2.getLemma())) {
+		    		alignmentType = "lexical";
+		    		operationName = "match";
+		    	}
+		    	else if (alignments.get(token1.getLemma() + "__" + token2.getLemma()) != null) {
+		    		alignmentType = alignments.get(token1.getLemma() + "__" + token2.getLemma());
+		    		operationName = "match";
+		    	}
+		    	//Silvia here we need to create an object Transformation containing the following
+		    	//information
+		    	System.err.println("operation:" + operationName + " " + "alignment:" + alignmentType + " token_T:" + token1 + " token_H:" + token2);
 	    	}
 	    	else if (operationName.contains("ins")){
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = h_tree.getToken(node);
-		    	System.err.println(operationName + ":" + token);
+		    	//Silvia here we need to create an object Transformation containing the following
+		    	//information
+		    	System.err.println("operation:" + operationName + " token_H:" + token);
 	    	}
 	    	else { //deletion
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = t_tree.getToken(node);
-		    	System.err.println(operationName + ":" + token);
+		    	//Silvia here we need to create an object Transformation containing the following
+		    	//information
+		    	System.err.println("operation:" + operationName + " token_T:" + token);
 	    	}
+	    	
+	    	//Silvia here we need to add the created tranformation
+	    	//transformations.add(the created transformation);
 	    		
 	    }
 		
@@ -966,110 +653,42 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
      }
     
     
-    
-    //given a tree and a node it return the path from the node to the root of the tree
-     private String getDeprelRelationsFromNodeToRoot(LabeledTree tree, int nodeId) {
-		
-		String relations = "";
-		
-		while (nodeId != -1) {
-			String deprel = tree.getToken(nodeId).getDeprel();
-			if (relations.length() == 0)
-				relations = deprel;
-			else
-				relations = relations + "#" + deprel;
-			nodeId = tree.getParent(nodeId);
-		}
-		
-		return relations;
-		
-	}
-    
-    
-    
-    /**
-     * Returns the weighted edit distance between the specified
-     * token sequences. The first argument is considered to be the
-     * input and the second argument the output
-     *
-     * @param source first token sequence
-     * @param target second token sequence
-     * 
-     * @return The edit distance between the sequences of tokens
-     * 
-     * @throws ArithmeticException
-     * 
-     */
-    public DistanceValue distanceOldMethod(List<Token> source, List<Token> target ) throws ArithmeticException {
-        	
-    	//System.err.println(this.toString());
+    private LabeledTree createTree(Fragment f) {
     	
-    	// distanceTable is a table with sizeSource+1 rows and sizeTarget+1 columns
-    	double[][] distanceTable = new double[source.size() + 1][target.size() + 1];
+    	LabeledTree lTree;
     	
-    	distanceTable[0][0] = 0;
-    	for (int i = 1; i <= source.size(); i++)
-    		distanceTable[i][0] = distanceTable[i-1][0] + getmDeleteWeight(source.get(i-1));
-    	for (int j = 1; j <= target.size(); j++)
-    		distanceTable[0][j] = distanceTable[0][j-1] + getmInsertWeight(target.get(j-1));
- 
+    	//the parents of the nodes
+    	int[] parents = new int[f.size()];
+    	//the ids of the nodes (they are the ids of the tokens as assigned by the dependency parser).
+    	int[] ids = new int[f.size()];
+    	//the tokens themselves
+    	FToken[] tokens = new FToken[f.size()];
     	
-    	try {
-    	
-    		for (int i = 1; i <= source.size(); i++)
-                for (int j = 1; j <= target.size(); j++) {
-
-                	distanceTable[i][j] = minimum(
-                			compare(getTokenBaseForm(source.get(i-1)),getTokenBaseForm(target.get(j-1))) || (
-                                       
-                					// it doesn't use the PoS to look for the relations in the lexical resource
-                					/* lexR != null && 
-                					source.get(i-1).getPos().getType().getName().equals(target.get(j-1).getPos().getType().getName()) && 
-                					getRulesFromResource(getTokenBaseForm(source.get(i-1)), null,
-                                   	getTokenBaseForm(target.get(j-1)), null))
-                					 */
-
-                                    // it uses the PoS to look for the relations in the lexical resource
-                					lexR != null && lexR.size() > 0 &&
-                						source.get(i-1).getPos().getType().getName().equals(target.get(j-1).getPos().getType().getName()) && 
-                						getRulesFromResource(getTokenBaseForm(source.get(i-1)), new ByCanonicalPartOfSpeech(source.get(i-1).getPos().getType().getShortName()),
-                								getTokenBaseForm(target.get(j-1)), new ByCanonicalPartOfSpeech(target.get(j-1).getPos().getType().getShortName())))
-        							
-        
-                                        ? distanceTable[i - 1][j - 1] + getmMatchWeight(source.get(i-1))
-                                    : distanceTable[i - 1][j - 1] + getmSubstituteWeight(source.get(i-1), target.get(j-1)),
-                                    distanceTable[i - 1][j] + getmDeleteWeight(source.get(i-1)),
-                                    distanceTable[i][j - 1] + getmInsertWeight(target.get(j-1)));
-                }
-
-    		
-    	
-    	} catch(Exception e) {
-    		e.printStackTrace();
-    		throw new ArithmeticException(e.getMessage());
+    	//Filling the data structure
+    	Iterator<FToken> iterator = f.getIterator();
+    	int i = 0;
+    	while (iterator.hasNext()) {
+    		FToken token_i = iterator.next();
+    		//we need to subtract -1 given that the tree edit distance library requires that
+        	//the id of the nodes starts from 0 instead 1.
+    		//System.out.println("======" + token_i);
+    		parents[i] = token_i.getHead();
+    		ids[i] = token_i.getId();
+    		tokens[i] = token_i;
+    		i++;
     	}
     	
-    	// distance is the the edit distance between source and target
-    	double distance = distanceTable[source.size()][target.size()];
-    	// norm is the distance equivalent to the cost of inserting the target token sequence and deleting
-    	// the entire source sequence. It is used to normalize distance values.
-
-    	double norm;
-    	if(LONG.equalsIgnoreCase(normalizationType)){
-    		norm = source.size() + target.size();
-    	}else {
-    		norm = distanceTable[source.size()][0] + distanceTable[0][target.size()];
-    	}
-    	// the normalizedDistanceValue score has a range from 0 (when source is identical to target), to 1
-    	// (when source is completely different form target).
-    	double normalizedDistanceValue = distance/norm;
+    	lTree = new LabeledTree( //
+    	    	//the parents of the nodes
+    	    		parents,
+    	    		//the ids of the tokens
+    	    		ids,
+    	    		//the tokens with all their information
+    	    		tokens);
     	
-    	return new EditDistanceValue(normalizedDistanceValue, false, distance);
-                
-     }
-    
-    
-    
+    	return lTree;
+    	
+    }
     
     
 	private boolean compare(String tokenBaseForm, String tokenBaseForm2) {
@@ -1091,195 +710,6 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     public abstract String getTokenBaseForm(Token token);
     
     
-    /**
-     * Returns the smaller of three double values
-     *
-     * @param a the 1st number
-     * @param b the 2nd number
-     * @param c the 3rd number
-     * 
-     * @return the smaller of three double values
-     * 
-     */
-    private double minimum(double a, double b, double c) {
-    	
-    	return Math.min(Math.min(a, b), c);
-    	
-    }
-    
-    
-    /**
-     * Initialize English Wordnet
-     * 
-     * @param path the path of the resource
-     * 
-     * @throws LexicalResourceException
-     */
-    private void initializeWordnet(String path) throws LexicalResourceException {
-    	
-    	logger.info("Wordnet initialization ...");
-    	
-    	try {
-    	
-			relations.add(WordNetRelation.SYNONYM);
-			relations.add(WordNetRelation.HYPERNYM);
-			
-			@SuppressWarnings("rawtypes")
-			LexicalResource resource = new WordnetLexicalResource(new File(path), false, false, relations, 3);
-			
-			lexR.add(resource);
-			
-		} catch (Exception e) {
-			throw new LexicalResourceException(e.getMessage());
-		}
-    	
-    	logger.info("done.");
-		
-    }
-    
-    
-    /**
-     * Initialize GermaNet
-     * 
-     * @param path the path of the resource
-     * 
-     * @throws LexicalResourceException
-     */
-    private void initializeGermaNet(String path) throws LexicalResourceException {
-    	
-    	logger.info("GermaNet initialization ...");
-    	
-		try {
-			
-			@SuppressWarnings("rawtypes")
-			LexicalResource resource = new GermaNetWrapper(path);
-			lexR.add(resource);
-			
-		} catch (Exception e) {
-			throw new LexicalResourceException(e.getMessage());
-		}
-		
-		logger.info("done.");
-	
-	}
-    
-    
-    /**
-     * Initialize English Wikipedia
-     * 
-     * @param dbConnection the db address
-     * @param dbUser the user name
-     * @param dbPasswd the user passwd
-     * 
-     * @throws LexicalResourceException
-     */
-    private void initializeEnglishWikipedia(String dbConnection, String dbUser, String dbPasswd) throws LexicalResourceException {
-    	
-    	logger.info("English Wikipedia initialization ...");
-    	
-    	try {
-    	
-			Set<WikiExtractionType> extractionTypes = Utils.arrayToCollection(new WikiExtractionType[]{WikiExtractionType.REDIRECT,WikiExtractionType.BE_COMP,
-					WikiExtractionType.BE_COMP_IDIRECT,WikiExtractionType.ALL_NOUNS_TOP}, new HashSet<WikiExtractionType>());
-			//File stopWordsFile = new File("src/test/resources/stopwords.txt");
-			File stopWordsFile = File.createTempFile("emptystopwordfile", ".tmp"); 
-			stopWordsFile.deleteOnExit();
-			
-			@SuppressWarnings("rawtypes")
-			LexicalResource resource = new WikiLexicalResource(stopWordsFile, extractionTypes, dbConnection, dbUser, dbPasswd, 0.01);
-			lexR.add(resource);
-			
-		} catch (Exception e) {
-			throw new LexicalResourceException(e.getMessage());
-		}
-    	
-    	logger.info("done.");
-	
-	}
-    
-    
-    /**
-     * Initialize Italian Wikipedia
-     * 
-     * @param dbConnection the db address
-     * @param dbUser the user name
-     * @param dbPasswd the user passwd
-     * 
-     * @throws LexicalResourceException
-     */
-    private void initializeItalianWikipedia(String dbConnection, String dbUser, String dbPasswd) throws LexicalResourceException {
-    	
-    	logger.info("Italian Wikipedia initialization ...");
-    	
-    	try {
-    		
-    		Set<WikiExtractionType> extractionTypes = Utils.arrayToCollection(new WikiExtractionType[]{WikiExtractionType.REDIRECT,WikiExtractionType.CATEGORY,
-    			WikiExtractionType.LEX_ALL_NOUNS,WikiExtractionType.SYNT_ALL_NOUNS}, new HashSet<WikiExtractionType>());
-    		
-    		//Set<WikiExtractionType> extractionTypes = Utils.arrayToCollection(new WikiExtractionType[]{WikiExtractionType.REDIRECT,WikiExtractionType.BE_COMP,
-				//	WikiExtractionType.BE_COMP_IDIRECT,WikiExtractionType.ALL_NOUNS_TOP}, new HashSet<WikiExtractionType>());
-    		//File stopWordsFile = new File("src/test/resources/stopwords.txt");
-			File stopWordsFile = File.createTempFile("emptystopwordfile", ".tmp"); 
-			stopWordsFile.deleteOnExit();
-			
-			@SuppressWarnings("rawtypes")
-			LexicalResource resource =  new WikiLexicalResourceIT(stopWordsFile, extractionTypes, dbConnection, dbUser, dbPasswd, 0.01);
-			lexR.add(resource);
-			
-		} catch (Exception e) {
-			throw new LexicalResourceException(e.getMessage());
-		}
-    	
-    	logger.info("done.");
-	
-	}
-    
-    
-    /**
-     * Return true if it exists a relation between leftLemma and rightLemma
-     * in the lexical resource.
-     * 
-     * @param leftLemma
-     * @param leftPos
-     * @param rightLemma
-     * @param rightPos
-     * 
-     * @return true if the rule exists; false otherwise
-     * 
-     * @throws LexicalResourceException
-     */
-    @SuppressWarnings("unchecked")
-	private boolean getRulesFromResource(String leftLemma, PartOfSpeech leftPos, 
-    		String rightLemma, PartOfSpeech rightPos) throws LexicalResourceException {
-    	
-    	//logger.info("leftLemma:" + leftLemma + " leftPos:" + leftPos + "\t" + "rightLemma:" + rightLemma + " " + "rightPos:" + rightPos);
-    	
-    	List<LexicalRule<?>> rules = null;
-    	
-		try {
-			
-			for (int i = 0; i < lexR.size(); i++) {
-				rules = lexR.get(i).getRules(leftLemma, leftPos, rightLemma, rightPos);
-				if (rules != null && rules.size() > 0) {
-					return true;
-				}
-			}
-			
-		} catch (LexicalResourceException e) {
-		    logger.severe(e.getMessage());
-			//logger.severe("leftLemma:" + leftLemma + " leftPos:" + leftPos + "\t" + "rightLemma:" + rightLemma + " " + "rightPos:" + rightPos);
-			//throw new LexicalResourceException(e.getMessage());
-    	} catch (Exception e) {
-    		logger.severe(e.getMessage());
-    		//logger.severe("leftLemma:" + leftLemma + " leftPos:" + leftPos + "\t" + "rightLemma:" + rightLemma + " " + "rightPos:" + rightPos);
-    		//throw new LexicalResourceException(e.getMessage());
-    	}
-		
-		return false;
-    }
-    
-    
-    
     
     // this method accept in input a tree (it has been produced by cas2CoNLLX
     // and return a fragment containing all the tokens in the tree
@@ -1295,16 +725,20 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
     	for (int i = 0; i < lines.length; i++) {
     		String[] fields = lines[i].split("\\s");
     		//for (int j = 0; j < fields.length; j++) {
-    			String tokenId = fields[0];
+    			int tokenId = Integer.parseInt(fields[0]) - 1;
     			String form = fields[1];
-    			String lemma = fields[2];		
-    			String head = fields[6];
-    			if (head.equals("_")) {
-    				head = "0";
+    			String lemma = fields[2];	
+    			String pos = fields[3];	
+    			int head;
+    			if (fields[6].equals("_")) {
+    				head = -1;
     				//System.out.println("====================================");
     			}
+    			else
+    				head = Integer.parseInt(fields[6]) - 1;
+    			
     			String deprel = fields[7];
-    			FToken token_i = new FToken(Integer.parseInt(tokenId), form, lemma, null, Integer.parseInt(head), deprel);
+    			FToken token_i = new FToken(tokenId, form, lemma, pos, head, deprel);
     			fragment.addToken(token_i);
     			
     		//}
@@ -1443,10 +877,9 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		@Override
 		public double replace(int node1, int node2) {
 			
-			//if (tree1.getLabel(node1) == tree2.getLabel(node2)) {
-			if (tree1.getToken(node1).getLemma() == tree2.getToken(node2).getLemma()
-					||this.alignments.containsKey(tree1.getToken(node1).getForm() + " " + tree2.getToken(node2).getForm())
-					) {
+			
+			if ( (tree1.getLabel(node1) == tree2.getLabel(node2)) && 
+			tree1.getToken(node1).getLemma().equalsIgnoreCase(tree2.getToken(node2).getLemma())) {
 				return 0;
 			} else {
 				//return 4;
@@ -1467,5 +900,222 @@ public abstract class FixedWeightTreeEditDistance implements DistanceCalculation
 		}
 		
 	}
+    
+    class Fragment {
+    	
+    	private ArrayList<FToken> tokens;
+    	
+    	public Fragment(){
+    		this.tokens = new ArrayList<FToken>();
+    	}
+    	
+    	public Fragment(ArrayList<FToken> tokens){
+    		this.tokens=tokens;
+    	}
+    	
+    	public FToken getToken(int tokenId){
+    		return tokens.get(tokenId-1);
+    	}
+    	
+    	public int size(){
+    		return tokens.size();
+    	}
+    	
+    	public void addToken (FToken token){
+    		tokens.add(token);
+    	}
+    	
+    	public void addTokens(ArrayList<FToken> addedTokens){
+    		
+    	}
+    	
+    	public Iterator<FToken> getIterator(){
+    		return tokens.iterator();
+    	}
+    		
+    }
+    
+    class FToken {
+
+    	//ID Token counter, starting at 1 for each new sentence.
+    	private int id;
+    	//FORM 	Word form or punctuation symbol.
+    	private String form;
+    	//LEMMA Lemma or stem (depending on particular data set) of word form, or an underscore if not available. 
+    	private String lemma;
+    	//STEM; not in CoNLL
+    	private String stem;
+    	//PoS
+    	private String pos;
+    	//HEAD 	Head of the current token, which is either a value of ID or zero ('0'). 
+     	//Note that depending on the original treebank annotation, there may be multiple tokens with an ID of zero.
+    	private int head;
+    	//DEPREL Dependency relation to the HEAD. The set of dependency relations depends on the particular language. 
+    	//Note that depending on the original treebank annotation, the dependency relation may be meaningfull or simply 'ROOT'.
+    	private String deprel;
+    	
+    	//dprel relations from the current token to the root
+    	private String deprelRelations;
+    	
+    	public FToken(int id, String form, String lemma, String pos, int head, String deprel) {
+    		
+    		this.id = id;
+    		this.form = form;
+    		this.lemma= lemma;
+    		this.pos = pos;
+    		//this.stem = stem;
+    		this.head = head;
+    		this.deprel = deprel;
+    		//the relation (deprel) moving from the node containing the token and
+    		//the root of the tree.
+    		this.deprelRelations = null;
+    	}
+    	
+    	public int getId() {
+    		
+    		return this.id;
+    		
+    	}
+    	
+    	public String getForm() {
+    		
+    		return this.form;
+    		
+    	}
+    	
+    	public String getLemma() {
+    		
+    		return this.lemma;
+    		
+    	}
+    	
+    	/*
+    	public String getStem() {
+    		
+    		return this.stem;
+    		
+    	}
+    	*/
+    	
+    	public String getPOS() {
+    		
+    		return this.pos;
+    		
+    	}
+    	
+    	public int getHead() {
+    		
+    		return this.head;
+    		
+    	}
+    	
+    	public String getDeprel() {
+    		
+    		return this.deprel;
+    		
+    	}
+    	
+       public void setDeprelRelations(String deprelRelations) {
+    		
+    		this.deprelRelations = deprelRelations;
+    		
+    	}
+       
+       public String getDeprelRelations() {
+    		
+    		return this.deprelRelations;
+    		
+    	}
+       
+       public String toString() {
+    		
+    		return this.id + "__" + 
+    			   this.form + "__" + 
+    		       this.lemma + "__" + 
+    		       this.pos + "__" + 
+    			   //this.stem + ":" +
+    		       this.head + "__" + 
+    			   this.deprel + "__" + 
+    		       this.deprelRelations;
+    		
+    	}
+    	
+    }
+    
+    class LabeledTree extends TreeImpl {
+    	
+    	private int[] labels;
+    	private FToken[] tokens;
+    	
+    	public LabeledTree(int[] parents, int[] labels) {
+    		super(parents);
+
+    		if (parents == null || labels == null)
+    			throw new NullPointerException();
+    		if (parents.length != labels.length)
+    			throw new IllegalArgumentException();
+    		
+    		this.labels = labels;
+    	}
+    	
+    	public LabeledTree(int[] parents, int[] labels, FToken[] tokens) {
+    		super(parents);
+
+    		if (parents == null || labels == null || tokens == null)
+    			throw new NullPointerException();
+    		if (parents.length != labels.length || parents.length != tokens.length)
+    			throw new IllegalArgumentException();
+    		
+    		this.labels = labels;
+    		this.tokens = tokens;
+    		getDeprelRelationsFromNodeToRoot();
+    		
+    	}
+
+    	public int getLabel(int nodeId) {
+    		
+    		return labels[nodeId];
+    		
+    	}
+    	
+    	public FToken getToken(int nodeId) {
+    		
+    		return tokens[nodeId];
+    		
+    	}
+    	
+        public FToken[] getTokens() {
+    		
+    		return this.tokens;
+    		
+    	}
+        
+
+        //given a tree and a node it return the path from the node to the root of the tree
+        private void getDeprelRelationsFromNodeToRoot() {
+    		
+        	//store the path of each node containing the token from the node to the root of the tree
+        	for (int z = 0; z < this.tokens.length; z++) {
+        		FToken token_z = this.tokens[z];
+        		String relations = "";
+        		int nodeId = token_z.getId();
+        		//System.out.println("node:" + nodeId);
+        		while (nodeId != -1) {
+        			String deprel = this.tokens[nodeId].getDeprel();
+        			if (relations.length() == 0)
+        				relations = deprel;
+        			else
+        				relations = relations + "#" + deprel;
+        			nodeId = this.getParent(nodeId);
+        			//System.out.print("====" + nodeId);
+        		}
+        		System.out.println();
+        		token_z.setDeprelRelations(relations);
+        	}
+    		
+    	}
+        
+    }
+
     
 }
