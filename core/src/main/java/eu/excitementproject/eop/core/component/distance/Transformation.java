@@ -1,6 +1,5 @@
 package eu.excitementproject.eop.core.component.distance;
 
-import eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance.FToken;
 
 public class Transformation {
 	
