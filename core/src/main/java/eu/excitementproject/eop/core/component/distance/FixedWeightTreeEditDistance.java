@@ -394,6 +394,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	//System.err.print(operation + " ");
 	    	String operationName = operation.split(":")[0];
 	    	String nodes = operation.split(":")[1];
+	    	Transformation trans = null;
 	    	if (operationName.contains("rep")) {
 		    	int node1 = Integer.parseInt(nodes.split(",")[0]);
 		    	int node2= Integer.parseInt(nodes.split(",")[1]);
@@ -408,15 +409,19 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    		alignmentType = alignments.get(token1.getLemma() + "__" + token2.getLemma());
 		    		operationName = "match";
 		    	}
-		    	//Silvia here we need to create an object Transformation containing the following
-		    	//information
+		    	//creating the Transformation
+		    	trans = new Transformation(operationName,alignmentType,token1,token2);
+		    	transformations.add(trans);
 		    	logger.info("operation:" + operationName + " " + "alignment:" + alignmentType + " token_T:" + token1 + " token_H:" + token2);
+		    	
 	    	}
 	    	else if (operationName.contains("ins")){
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = h_tree.getToken(node);
 		    	//Silvia here we need to create an object Transformation containing the following
 		    	//information
+		    	trans = new Transformation(operationName, token);
+		    	transformations.add(trans);
 		    	logger.info("operation:" + operationName + " token_H:" + token);
 	    	}
 	    	else { //deletion
@@ -424,12 +429,12 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    	FToken token = t_tree.getToken(node);
 		    	//Silvia here we need to create an object Transformation containing the following
 		    	//information
+		    	trans = new Transformation(operationName, token);
+		    	transformations.add(trans);
 		    	logger.info("operation:" + operationName + " token_T:" + token);
 	    	}
-	    	
-	    	//Silvia here we need to add the created tranformation
-	    	//transformations.add(the created transformation);
-	    		
+	    	System.out.println(trans);
+
 	    }
 		
     	return new EditDistanceValue(distance, false, distance);
@@ -684,80 +689,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 
     
     
-    class LabeledTree extends TreeImpl {
-    	
-    	private int[] labels;
-    	private FToken[] tokens;
-    	
-    	public LabeledTree(int[] parents, int[] labels) {
-    		super(parents);
-
-    		if (parents == null || labels == null)
-    			throw new NullPointerException();
-    		if (parents.length != labels.length)
-    			throw new IllegalArgumentException();
-    		
-    		this.labels = labels;
-    	}
-    	
-    	public LabeledTree(int[] parents, int[] labels, FToken[] tokens) {
-    		super(parents);
-
-    		if (parents == null || labels == null || tokens == null)
-    			throw new NullPointerException();
-    		if (parents.length != labels.length || parents.length != tokens.length)
-    			throw new IllegalArgumentException();
-    		
-    		this.labels = labels;
-    		this.tokens = tokens;
-    		getDeprelRelationsFromNodeToRoot();
-    		
-    	}
-
-    	public int getLabel(int nodeId) {
-    		
-    		return labels[nodeId];
-    		
-    	}
-    	
-    	public FToken getToken(int nodeId) {
-    		
-    		return tokens[nodeId];
-    		
-    	}
-    	
-        public FToken[] getTokens() {
-    		
-    		return this.tokens;
-    		
-    	}
-        
-
-        //given a tree and a node it return the path from the node to the root of the tree
-        private void getDeprelRelationsFromNodeToRoot() {
-    		
-        	//store the path of each node containing the token from the node to the root of the tree
-        	for (int z = 0; z < this.tokens.length; z++) {
-        		FToken token_z = this.tokens[z];
-        		String relations = "";
-        		int nodeId = token_z.getId();
-        		//System.out.println("node:" + nodeId);
-        		while (nodeId != -1) {
-        			String deprel = this.tokens[nodeId].getDeprel();
-        			if (relations.length() == 0)
-        				relations = deprel;
-        			else
-        				relations = relations + "#" + deprel;
-        			nodeId = this.getParent(nodeId);
-        			//System.out.print("====" + nodeId);
-        		}
-        		System.out.println();
-        		token_z.setDeprelRelations(relations);
-        	}
-    		
-    	}
-        
-    }
+    
 
     
 }
