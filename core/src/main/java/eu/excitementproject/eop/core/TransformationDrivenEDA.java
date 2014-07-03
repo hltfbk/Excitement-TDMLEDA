@@ -1,9 +1,14 @@
 package eu.excitementproject.eop.core;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -17,10 +22,22 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.*;
+
+import org.uimafit.util.JCasUtil;
 import org.w3c.dom.*;
 
+import de.tuebingen.uni.sfs.germanet.api.Example;
+
+import weka.classifiers.Classifier;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.trees.J48;
+import weka.classifiers.functions.SMO;
 import weka.core.Attribute;
 import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.SparseInstance;
+import weka.core.converters.CSVLoader;
 
 import eu.excitementproject.eop.common.DecisionLabel;
 import eu.excitementproject.eop.common.EDABasic;
@@ -53,6 +70,17 @@ import eu.excitementproject.eop.lap.PlatformCASProber;
 public class TransformationDrivenEDA<T extends TEDecision>
 		implements EDABasic<EditDistanceTEDecision> {
 	
+	/** The actual classifier. */
+	//private Classifier classifier = new J48(); 
+	private Classifier classifier = new SMO();
+	private ArrayList<String> featureList;;
+	//private ArrayList<String> features;
+    private FastVector attributeList;
+    //the data set for training or test
+    private Instances inputDataset;
+    //the entailment class: ENTAILMENT, NONENTAILMENT
+    private FastVector entailmentClassList;
+	
 	/**
 	 * the accuracy obtained on the training data set
 	 */
@@ -66,211 +94,23 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	/**
 	 * the logger
 	 */
-	static Logger logger = Logger.getLogger(EditDistanceEDA.class.getName());
-
-	/**
-	 * the language
-	 */
-	private String language;
+	static Logger logger = Logger.getLogger(TransformationDrivenEDA.class.getName());
 
 	/**
 	 * the training data directory
 	 */
 	private String trainDIR;
+	
+	/**
+	 * the tmp directory
+	 */
+	private String tmpDIR;
 
 	/**
 	 * the test data directory
 	 */
 	private String testDIR;
-
-	/**
-	 * if the model produced during the training phase
-	 * has to be saved into the configuration file itself or
-	 * if it should stay in the memory for further calculation 
-	 * (e.g. EditDistancePSOEDA uses this modality)
-	 */
-	private boolean writeModel;
-	
-	/**
-	 * weight for match
-	 */
-    private double mMatchWeight;
     
-    /**
-	 * weight for delete
-	 */
-    private double mDeleteWeight;
-    
-    /**
-	 * weight for insert
-	 */
-    private double mInsertWeight;
-    
-    /**
-	 * weight for substitute
-	 */
-    private double mSubstituteWeight;
-    
-    /**
-	 * measure to optimize: accuracy or f1 measure
-	 */
-    private String measureToOptimize;
-    
-	/**
-	 * if the EDA has to write the learnt model at the end of the training phase
-	 * 
-	 * @param write true for saving the model
-	 *
-	 * @return
-	 */
-	public void setWriteModel(boolean write) {
-		
-		this.writeModel = write;
-		
-	}
-	
-	/**
-	 * set the weight of the match edit distant operation
-	 * 
-	 * @param mMatchWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-	public void setmMatchWeight(double mMatchWeight) {
-    	
-    	this.mMatchWeight = mMatchWeight;
-    	
-    }
-	
-	/**
-	 * get the weight of the match edit distant operation
-	 * 
-	 * @return the weight
-	 */
-	public double getmMatchWeight() {
-    	
-    	return this.mMatchWeight;
-    	
-    }
-    
-	/**
-	 * set the weight of the delete edit distant operation
-	 * 
-	 * @param mDeleteWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmDeleteWeight(double mDeleteWeight) {
-    	
-    	this.mDeleteWeight = mDeleteWeight;
-    	
-    }
-    
-    /**
-	 * get the weight of the delete edit distant operation
-	 * 
-	 * @return the weight
-	 */
-	public double getmDeleteWeight() {
-    	
-    	return this.mDeleteWeight;
-    	
-    }
-    
-    /**
-	 * set the weight of the insert edit distant operation
-	 * 
-	 * @param mInsertWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmInsertWeight(double mInsertWeight) {
-    	
-    	this.mInsertWeight = mInsertWeight;
-    	
-    }
-    
-    /**
-	 * get the weight of the insert edit distant operation
-	 * 
-	 * @return
-	 */
-    public double getmInsertWeight() {
-    	
-    	return this.mInsertWeight;
-    	
-    }
-    
-    /**
-	 * set the weight of the substitute edit distant operation
-	 * 
-	 * @param mSubstituteWeight the value of the edit distant operation
-	 *
-	 * @return
-	 */
-    public void setmSubstituteWeight(double mSubstituteWeight) {
-    	
-    	this.mSubstituteWeight = mSubstituteWeight;
-    	
-    }
-    
-    /**
-	 * get the weight of the insert edit distant operation
-	 * 
-	 * @return
-	 */
-    public double getmSubstituteWeight() {
-    	
-    	return this.mSubstituteWeight;
-    	
-    }
-    
-    /**
-	 * set the measure to be optimize during the training phase
-	 * 
-	 * @param measureToOptimize the measure to be optimized
-	 * 
-	 * @return
-	 */
-    public void setMeasureToOptimize(String measureToOptimize) {
-    	
-    	this.measureToOptimize = measureToOptimize;
-    	
-    }
-    
-    /**
-	 * get the measure to be optimize during the training phase
-	 * 
-	 * @return the name of the measure
-	 */
-    public String getMeasureToOptimize() {
-    	
-    	return this.measureToOptimize;
-    	
-    }
-    
-    /**
-	 * get the type of component (i.e. EditDistanceEDA)
-	 * 
-	 * @return the type of component
-	 */
-    protected String getType() {
-    	
-    	return this.getClass().getCanonicalName();
-    	
-    }
-    
-	/**
-	 * get the language the EDA has to work with
-	 * 
-	 * @return the language
-	 */
-	public String getLanguage() {
-		
-		return this.language;
-		
-	}
-
 	/**
 	 * get the component used by the EDA
 	 * 
@@ -281,19 +121,17 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		return this.component;
 		
 	}
-
+	
 	/**
-	 * set the language the EDA has to work with
+	 * get the type of component (i.e. EditDistanceEDA)
 	 * 
-	 * @param language the language
-	 * 
-	 * @return
+	 * @return the type of component
 	 */
-	public void setLanguage(String language) {
-		
-		this.language = language;
-		
-	}
+    protected String getType() {
+    	
+    	return this.getClass().getCanonicalName();
+    	
+    }
 
 	/**
 	 * get the training data directory
@@ -307,12 +145,33 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	}
 	
 	/**
+	 * get the tmp directory
+	 * 
+	 * @return the tmp directory
+	 */
+	public String getTmpDIR() {
+		
+		return this.tmpDIR;
+		
+	}
+	
+	/**
 	 * set the training data directory
 	 * 
 	 */
 	public void setTrainDIR(String trainDIR) {
 		
 		this.trainDIR = trainDIR;
+		
+	}
+	
+	/**
+	 * set the tmp directory
+	 * 
+	 */
+	public void setTmpDIR(String tmpDIR) {
+		
+		this.tmpDIR = tmpDIR;
 		
 	}
 	
@@ -349,46 +208,20 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	}
 	
 	/**
-	 * Construct an edit distance EDA.
+	 * Construct an TransformationDriven EDA.
 	 */
 	public TransformationDrivenEDA() {
     	
-		logger.info("Creating an instance of Edit Distance EDA");
+		logger.info("Creating an instance of TransformationDrivenEDA ");
 		
 		this.component = null;
-        this.writeModel = true;
-        this.mMatchWeight = Double.NaN;
-        this.mDeleteWeight = Double.NaN;
-        this.mInsertWeight = Double.NaN;
-        this.mSubstituteWeight = Double.NaN;
-        this.trainDIR = null;
-        this.trainDIR = null;
-        this.language = null;
-        this.measureToOptimize = null;
+        this.trainDIR = "/tmp/training/";
+        this.testDIR = "/tmp/test/";
+        this.tmpDIR = "/tmp/temporaryfiles/";
         
         logger.info("done.");
         
     }
-	
-	/**
-	 * Construct an edit distance EDA with the weights of the edit distance operations set
-	 * 
-	 * @param mMatchWeight weight for match
-	 * @param mDeleteWeight weight for delete
-	 * @param mInsertWeight weight for insert
-	 * @param mSubstituteWeight weight for substitute
-	 * 
-	 */
-	public TransformationDrivenEDA(double mMatchWeight, double mDeleteWeight, double mInsertWeight, double mSubstituteWeight) {
-		
-		this();
-		
-		this.mMatchWeight = mMatchWeight;
-	    this.mDeleteWeight = mDeleteWeight;
-	    this.mInsertWeight = mInsertWeight;
-	    this.mSubstituteWeight = mSubstituteWeight;
-		
-	}
 
 	@Override
 	public void initialize(CommonConfig config) throws ConfigurationException, EDAException, ComponentException {
@@ -401,7 +234,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			checkConfiguration(config);
 			
 			//getting the name value table of the EDA
-			NameValueTable nameValueTable = config.getSection(this.getType());
+			NameValueTable nameValueTable  = null;
+			//= config.getSection(this.getType());
 			
 			//setting the training directory
 			if (this.trainDIR == null)
@@ -411,11 +245,17 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			if (this.testDIR == null)
 				this.testDIR = nameValueTable.getString("testDir");
 			
-			//initializing the weight of the edit distant operations
-			initializeWeights(config);
-			
+			//setting the test directory
+			if (this.tmpDIR == null)
+				this.tmpDIR = nameValueTable.getString("tmpDir");
+
 			//component initialization
-			String componentName  = nameValueTable.getString("components");
+			String componentName;//  = nameValueTable.getString("components");
+			
+			componentName  = "eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance";
+
+			
+			/*
 			if (component == null) {
 				
 				try {
@@ -424,39 +264,16 @@ public class TransformationDrivenEDA<T extends TEDecision>
 					logger.info("Using:" + componentClass.getCanonicalName());
 					Constructor<?> componentClassConstructor = componentClass.getConstructor(CommonConfig.class);
 					this.component = (FixedWeightTreeEditDistance) componentClassConstructor.newInstance(config);
-					this.component.setmMatchWeight(mMatchWeight);
-					this.component.setmDeleteWeight(mDeleteWeight);
-					this.component.setmInsertWeight(mInsertWeight);
-					this.component.setmSubstituteWeight(mSubstituteWeight);
-					
-					/*
-					 * Initializing FixedWeightEditDistance without a configuration file
-					FixedWeightEditDistance fwed = new FixedWeightTokenEditDistance(mMatchWeight, mDeleteWeight, 
-							mInsertWeight, mSubstituteWeight, true, "IT", null);
-					
-					this.component = fwed;
-					*/
-					
-					/*
-					 * Initializing FixedWeightEditDistance without a configuration file and using
-					 * wikipedia as an external resource.
-					Map<String,String> resources = new HashMap<String,String>();
-					resources.put("wikipedia", "jdbc:mysql://nathrezim:3306/wikilexresita#root#nat_2k12");
-					FixedWeightEditDistance fwed = new FixedWeightTokenEditDistance(mMatchWeight, mDeleteWeight, 
-							mInsertWeight, mSubstituteWeight, true, "IT", resources);
-					
-					this.component = fwed;
-					*/
 					
 				} catch (Exception e) {
 					throw new ComponentException(e.getMessage());
 				}
 				
 			}
+			*/
+
 			
-			//setting the measure to be optimized
-			if (this.measureToOptimize == null)
-				this.measureToOptimize = nameValueTable.getString("measure");
+	    
 			
 		} catch (ConfigurationException e) {
 			throw e;
@@ -471,19 +288,95 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	@Override
 	public EditDistanceTEDecision process(JCas jcas) throws EDAException, ComponentException {
 		
-		String pairId = getPairId(jcas);
+		logger.info("Processing ...");
 		
-		//the distance between the T-H pair
-		DistanceValue distanceValue = component.calculation(jcas);
-		double distance = distanceValue.getDistance();
+		Pair pair = JCasUtil.selectSingle(jcas, Pair.class);
+		double score;
 		
+		try {
+				
+				//reads the feature list
+				//una feature per riga
+				File fileDir = new File(tmpDIR + "/" + "feature_list.txt");
+			 
+				BufferedReader in = new BufferedReader(
+					  new InputStreamReader(
+			                     new FileInputStream(fileDir), "UTF8"));
+			 
+				String str;
+			 
+				while ((str = in.readLine()) != null) {
+				
+					featureList.add(str);
+					//System.out.println(str);
+					
+				}
+			 
+			    in.close();
+			    	
+			} catch (UnsupportedEncodingException e) {
+				System.out.println(e.getMessage());
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
+			
+		
+		try {
+			
+			
+			
+			String goldAnswer = pair.getGoldAnswer(); //get gold annotation
+			//logger.fine("gold answer: " + goldAnswer);
+			//get the distance between T and H
+			
+			//double distance = component.calculation(jcas).getDistance();
+			
+			//get the transformations to transform T into H
+			
+			//List<Transformation> transformations = component.getTransformations();
+			
+			//vi e` gia init data set che inizializza il data set come
+			//Transformations,Entailment
+			//updateDataSet salva i valori nel file come:
+			//"trasformazione1 trasformazione2 ...........",ENTAILMENT
+			//populating data set
+			
+			
+			
+            //saveDataSet(fileName, true, 
+            	//	"\"" + transformations.toString().replaceAll("\"", "'") + 
+            	//	"\"", goldAnswer);
+            
+			//init data set
+			saveDataSet(tmpDIR + "/" + "test_data_set.csv", false, 
+            		"Transformation", "Entailment");
+			if (goldAnswer.equals("ENTAILMENT"))
+				saveDataSet(tmpDIR + "/" + "test_data_set.csv", true, 
+	            		"\"" + "tr5 tr6 tr7 tr8".replaceAll("\"", "'") + 
+	            		"\"", goldAnswer);
+			else
+				saveDataSet(tmpDIR + "/" + "test_data_set.csv", true, 
+            		"\"" + "tr1 tr2 tr3 tr4".replaceAll("\"", "'") + 
+            		"\"", goldAnswer);
+			
+			score = testClassifier(tmpDIR + "/" + "test_data_set.csv");
+			System.out.println("===score:" + score);
+		
+		} catch (Exception e) {
+			
+			throw new EDAException(e.getMessage());
+			
+		} 
+			
 		// During the test phase the method applies the threshold, so that
 		// pairs resulting in a distance below the threshold are classiﬁed as ENTAILMENT, while pairs 
 		// above the threshold are classiﬁed as NONENTAILMENT.
-		if (distance <= this.threshold)
-			return new EditDistanceTEDecision(DecisionLabel.Entailment, pairId, threshold - distance);
+		if (score <= 0)
+			return new EditDistanceTEDecision(DecisionLabel.Entailment, pair.getPairID(), 0);
 		
-		return new EditDistanceTEDecision(DecisionLabel.NonEntailment, pairId, distance - threshold);
+		return new EditDistanceTEDecision(DecisionLabel.NonEntailment, pair.getPairID(), 0);
 		
 	}
 	
@@ -496,15 +389,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			((FixedWeightTreeEditDistance)component).shutdown();
 		
 		this.component = null;
-        this.writeModel = true;
-        this.mMatchWeight = Double.NaN;
-        this.mDeleteWeight = Double.NaN;
-        this.mInsertWeight = Double.NaN;
-        this.mSubstituteWeight = Double.NaN;
         this.trainDIR = null;
         this.trainDIR = null;
-        this.language = null;
-        this.measureToOptimize = null;
         
         logger.info("done.");
 		
@@ -518,76 +404,389 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		try {
 			
 			initialize(config);
+
+			createDataSet(tmpDIR + "/" + "train_data_set.csv", trainDIR);
 			
-			//contains the distance between each pair of T-H
-			List<List<String>> editDistanceOperationsList = new ArrayList<List<String>>();
-			//contains the entailment annotation between each pair of T-H
-			List<String> entailmentValueList = new ArrayList<String>();
-			//contains the entailment annotation and the distance between each pair of T-H
+			createFetureList();
 			
-			File f = new File(trainDIR);
-			if (f.exists() == false) {
-				throw new ConfigurationException("trainDIR:" + f.getAbsolutePath() + " not found!");
+		    featureList = new ArrayList<String>();
+		    attributeList = new FastVector();
+			
+			
+			try {
+				
+				//reads the feature list
+				//una feature per riga
+				File fileDir = new File(tmpDIR + "/" + "feature_list.txt");
+			 
+				BufferedReader in = new BufferedReader(
+					  new InputStreamReader(
+			                     new FileInputStream(fileDir), "UTF8"));
+			 
+				String str;
+			 
+				while ((str = in.readLine()) != null) {
+				
+					featureList.add(str);
+					//System.out.println(str);
+					
+				}
+			 
+			    in.close();
+			    	
+			} catch (UnsupportedEncodingException e) {
+				System.out.println(e.getMessage());
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
 			}
 			
-			int filesCounter = 0;
+	        //creating an attribute list from the list of feature words
+	        entailmentClassList = new FastVector();
+	        entailmentClassList.addElement("ENTAILMENT");
+	        entailmentClassList.addElement("NONENTAILMENT");
+	        
+	        for(String feature_i : featureList) {
+	            attributeList.addElement(new Attribute(feature_i));
+	        }
+	        
+	        
+	        //the last attribute reprsents ths CLASS (Sentiment) of the tweet
+	        attributeList.addElement(new Attribute("Entailment", entailmentClassList));
+			
+			trainClassifier(tmpDIR + "/" + "train_data_set.csv");
+			
+		} catch (Exception e) {
+			
+			throw new EDAException(e.getMessage());
+			
+		} 
+		
+	}
+		
+	
+	public void createDataSet(String fileName, String dirInput) {
+		
+		logger.info("Writing data set ...");
+		
+		try {
+			
+			//stores gold answers
+			ArrayList<String> goldAnswers = new ArrayList<String>();
+
+			File f = new File(dirInput);
+			if (f.exists() == false) {
+				throw new ConfigurationException(dirInput + ":" + f.getAbsolutePath() + " not found!");
+			}
+			
+			//init data set
+			saveDataSet(fileName, false, 
+            		"Transformation", "Entailment");
+			
+			//build up the dataset from training data
 			for (File xmi : f.listFiles()) {
+				
 				if (!xmi.getName().endsWith(".xmi")) {
 					continue;
 				}
+			
+				// The annotated pair is added into the CAS.
+				JCas jcas = PlatformCASProber.probeXmi(xmi, null);
+				Pair pair = JCasUtil.selectSingle(jcas, Pair.class);
+				//logger.fine("processing pair: " + pair.getPairID());
+				String goldAnswer = pair.getGoldAnswer(); //get gold annotation
+				//logger.fine("gold answer: " + goldAnswer);
+				//get the distance between T and H
 				
-				JCas cas = PlatformCASProber.probeXmi(xmi, null);
-					
-				List<String> operations = getEditDistanceOperations(cas);
-				String entailmentAnnotation = getEntailmentAnnotation(cas);
+				//double distance = component.calculation(jcas).getDistance();
 				
-
-				 // Declare a nominal attribute along with its values
-				 FastVector fvNominalVal = new FastVector(operations.size());
-				 for (int i = 0; i < operations.size(); i++) {
-					 fvNominalVal.addElement(operations.get(i));
-				 }
-				 Attribute Attribute = new Attribute("operations", fvNominalVal);
-				 
-				 // Declare the class attribute along with its values
-				 FastVector fvClassVal = new FastVector(1);
-				 fvClassVal.addElement(entailmentAnnotation);
-				 //fvClassVal.addElement(“negative”);
-				 Attribute ClassAttribute = new Attribute("theClass", fvClassVal);
-				 
-				 // Declare the feature vector
-				 FastVector fvWekaAttributes = new FastVector(2);
-				 fvWekaAttributes.addElement(Attribute);  
-				 fvWekaAttributes.addElement(ClassAttribute);
+				//get the transformations to transform T into H
 				
-				 filesCounter++;
+				//List<Transformation> transformations = component.getTransformations();
+				
+				//vi e` gia init data set che inizializza il data set come
+				//Transformations,Entailment
+				//updateDataSet salva i valori nel file come:
+				//"trasformazione1 trasformazione2 ...........",ENTAILMENT
+				//populating data set
+				
+				
+				
+                //saveDataSet(fileName, true, 
+                	//	"\"" + transformations.toString().replaceAll("\"", "'") + 
+                	//	"\"", goldAnswer);
+                
+                
+				if (goldAnswer.equals("ENTAILMENT"))
+					saveDataSet(fileName, true, 
+	                		"\"" + "tr5 tr6 tr7 tr8".replaceAll("\"", "'") + 
+	                		"\"", goldAnswer);
+				else
+					saveDataSet(fileName, true, 
+                		"\"" + "tr1 tr2 tr3 tr4".replaceAll("\"", "'") + 
+                		"\"", goldAnswer);
+                
 			}
 			
-			if (filesCounter == 0)
-				throw new ConfigurationException("trainDIR:" + f.getAbsolutePath() + " empty!");
-			
-			
-			
-			this.threshold = thresholdAndAccuracy[0];
-			this.trainingAccuracy = thresholdAndAccuracy[1];
-			
-			//it saves the calculated model into the configuration file itself
-			if (this.writeModel == true)
-				saveModel(config);
-			
-		} catch (ConfigurationException e) {
-			throw e;
-		} catch (EDAException e) {
-			throw e;
-		} catch (ComponentException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new EDAException(e.getMessage());
-		}
-		
-		logger.info("done.");
+			System.err.println("errorre:" + e.getMessage());
+			//throw new EDAException(e.getMessage());
+		} 
 		
 	}
+	
+	
+	
+	private void createFetureList() {
+		
+		Set<String> features = new HashSet<String>();
+		
+		try {
+			
+			//reads the feature list
+			//una feature per riga
+			File fileDir = new File(tmpDIR + "/" + "train_data_set.csv");
+		 
+			BufferedReader in = new BufferedReader(
+				  new InputStreamReader(
+		                     new FileInputStream(fileDir), "UTF8"));
+		 
+			String str;
+		 
+			int counter = 0;
+			while ((str = in.readLine()) != null) {
+			
+				if (counter == 0) {
+					counter++;
+					continue;
+				}
+				
+				String featuresList = str.split("\",")[0];
+				featuresList = featuresList.substring(1);
+				
+				String[] splitFeatures = featuresList.split("\\s");
+				
+				for (String feature_i : splitFeatures) {
+					
+					features.add(feature_i);
+					
+				}
+				
+			}
+		 
+		    in.close();
+		    	
+		} catch (UnsupportedEncodingException e) {
+			System.out.println(e.getMessage());
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+		
+		BufferedWriter writer = null;
+	    StringBuffer stringBuffer = new StringBuffer();
+		
+	    try {
+	    		
+	    	for (String feature_i : features) {
+	    		
+	    		stringBuffer.append(feature_i);
+	    		stringBuffer.append("\n");
+	    		
+	    	}
+	    	
+	    	writer = new BufferedWriter(new OutputStreamWriter(
+	                  new FileOutputStream(tmpDIR + "/" + "feature_list.txt", false), "UTF-8"));
+
+	    	PrintWriter printout = new PrintWriter(writer);
+	    	//"tr1 tr2 tr3", ENTAILMENT
+	    	printout.print(stringBuffer);
+	    	printout.close();
+	    	
+	    	writer.close();
+		    	
+	    } catch (Exception e) {
+	    	
+	    	System.out.println(e.getMessage());
+	    	
+	    } 
+		
+	}
+	
+	
+	
+		
+	/**
+	 * Save the optimized parameters (e.g. threshold) into the configuration file itself
+	*/
+	private void saveDataSet(String fileName, boolean append, String transformations, String goldAnswer) throws IOException {
+	    	
+	    BufferedWriter writer = null;
+	    
+	    try {
+	    		
+	    	writer = new BufferedWriter(new OutputStreamWriter(
+	                  new FileOutputStream(fileName, append), "UTF-8"));
+
+	    	PrintWriter printout = new PrintWriter(writer);
+	    	//"tr1 tr2 tr3", ENTAILMENT
+	    	printout.println(transformations + "," + goldAnswer);
+	    	printout.close();
+		    	
+	    } catch (Exception e) {
+	    	throw new IOException(e.getMessage());
+	    } finally {
+	    	if (writer != null)
+	    		writer.close();
+	    }
+
+	}
+	
+	
+	public void trainClassifier(final String INPUT_FILENAME) {
+		
+		getDataset(INPUT_FILENAME);
+            
+		//trainingInstances consists of feature vector of every input
+		Instances trainingInstances = createInstances("TRAINING_INSTANCES");
+            
+		for (int i = 0; i < inputDataset.numInstances(); i++) {
+		
+			Instance instance_i = inputDataset.instance(i);
+			//extractFeature method returns the feature vector for the current input
+			Instance featureVector_i = getFeatures(instance_i);
+			//Make the currentFeatureVector to be added to the trainingInstances
+			featureVector_i.setDataset(trainingInstances);
+			trainingInstances.add(featureVector_i);
+		}
+            
+        //You can create the classifier that you want. In this tutorial we use NaiveBayes Classifier
+        //For instance classifier = new SMO;
+        classifier = new NaiveBayes();
+            
+        try {
+            //classifier training code
+            classifier.buildClassifier(trainingInstances);
+            
+            //storing the trained classifier to a file for future use
+            weka.core.SerializationHelper.write(tmpDIR + "/" + "NaiveBayes.model",classifier);
+            
+        } catch (Exception ex) {
+            System.out.println("Exception in training the classifier.");
+        }
+        
+    }
+    
+    
+    public double testClassifier(final String INPUT_FILENAME) {
+    	
+    	double score = 0;
+    	
+        getDataset(INPUT_FILENAME);
+            
+        //trainingInstances consists of feature vector of every input
+        Instances testingInstances = createInstances("TESTING_INSTANCES");
+
+        for (int i = 0; i < inputDataset.numInstances(); i++) {
+    		
+			Instance instance_i = inputDataset.instance(i);
+			//extractFeature method returns the feature vector for the current input
+			Instance featureVector_i = getFeatures(instance_i);
+			//Make the currentFeatureVector to be added to the trainingInstances
+			featureVector_i.setDataset(testingInstances);
+			testingInstances.add(featureVector_i);
+		}
+        
+        try {
+        	
+            //Classifier deserialization
+            classifier = (Classifier) weka.core.SerializationHelper.read(tmpDIR + "/" + "NaiveBayes.model");
+            
+            for (int i = 0; i < testingInstances.numInstances(); i++) {
+                
+            	Instance instance_i = testingInstances.instance(i);
+                score = classifier.classifyInstance(instance_i);
+                System.out.println(testingInstances.attribute("Entailment").value((int)score));
+                
+            }
+            
+        } catch (Exception ex) {
+        	
+            System.out.println("Exception in testing the classifier.");
+            
+        }
+        
+        return score;
+        
+    }
+    
+    
+    private void getDataset(final String INPUT_FILENAME) {
+    	
+        try{
+        	
+            //reading the training dataset from CSV file
+            CSVLoader trainingLoader = new CSVLoader();
+            trainingLoader.setSource(new File(INPUT_FILENAME));
+            inputDataset = trainingLoader.getDataSet();
+            
+        } catch(IOException ex) {
+            System.out.println("Exception in getDataset Method");
+        }
+    }
+    
+    
+    private Instances createInstances(final String INSTANCES_NAME) {
+        
+        //create an Instances object with initial capacity as zero 
+        Instances instances = new Instances(INSTANCES_NAME, attributeList, 0);
+        
+        //sets the class index as the last attribute (positive or negative)
+        instances.setClassIndex(instances.numAttributes()-1);
+            
+        return instances;
+        
+    }
+    
+    
+    private Instance getFeatures(Instance inputInstance) {
+    	
+        Map<Integer,Double> featureMap = new TreeMap<>();
+        
+        //transformations produced by the Tree Edit Distance components and
+        //that are used as features are separated by a space character
+        String[] features = inputInstance.stringValue(0).split("\\s");
+
+        for(String feature_i : features) {
+        	
+        	if(featureList.contains(feature_i)) {
+        		//adding 1.0 to the featureMap represents that the feature_i is present in the input data
+        		featureMap.put(featureList.indexOf(feature_i), 1.0);
+        	}
+        	
+        }
+        
+        int indices[] = new int[featureMap.size() + 1];
+        double values[] = new double[featureMap.size() + 1];
+        int i=0;
+        for(Map.Entry<Integer,Double> entry : featureMap.entrySet()) {
+        	
+            indices[i] = entry.getKey();
+            values[i] = entry.getValue();
+            i++;
+        }
+        indices[i] = featureList.size();
+        values[i] = (double)entailmentClassList.indexOf(inputInstance.stringValue(1));
+        
+        return new SparseInstance(1.0, values, indices, featureList.size());
+        
+    }
+			
+			
+	
 	
 	/**
      * Checks the configuration and raise exceptions if the provided
@@ -600,195 +799,39 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	private void checkConfiguration(CommonConfig config) 
 			throws ConfigurationException {
 		
-		if (config == null)
-			throw new ConfigurationException("Configuration file not found.");
+		//if (config == null)
+			//throw new ConfigurationException("Configuration file not found.");
 		
 	}
 	
 	
-	/**
-     * Returns the pair identifier of the pair contained in the specified CAS
-     *
-     * @param jcas the CAS
-     * 
-     * @return the pair identifier
-     */
-	private String getPairId(JCas jcas) {
+	public static void main(String args[]) {
 		
-		FSIterator<TOP> pairIter = jcas.getJFSIndexRepository().getAllIndexedFS(Pair.type);
+		TransformationDrivenEDA tdEDA = new TransformationDrivenEDA();
 		
-		Pair p = null;
-		if (pairIter.hasNext())
-			p = (Pair)pairIter.next();
-		
-		if (p != null)
-			return p.getPairID();
-	
-		return null;
-		
-	}
-	
-	/**
-     * Puts distance values calculating for each of the pair T and H
-     * of the specified list of Cas into the distanceValues list. 
-     * Each of the Cas of the list contains a single pair T-H
-     *
-     * @param jcas the list of CAS
-     * @param distanceValues the list of the distance values
-     * 
-     * @throws DistanceComponentException
-     */
-	private List<String> getEditDistanceOperations(JCas jcas)
-			throws DistanceComponentException {
-		
-		List<String> result = null;
-	
 		try {
-
-				DistanceValue distanceValue = component.calculation(jcas);
-				result = component.getEditDistanceOperations();
-
-		} catch(DistanceComponentException e) {
-			throw e;
-		}
+		
+			tdEDA.startTraining(null);
+			File f = new File(tdEDA.testDIR);
 			
-		return result;
+			//build up the dataset from training data
+			for (File xmi : f.listFiles()) {
+				
+				if (!xmi.getName().endsWith(".xmi")) {
+					continue;
+				}
+			
+				// The annotated pair is added into the CAS.
+				JCas jcas = PlatformCASProber.probeXmi(xmi, null);
+				tdEDA.process(jcas);
+				
+			}
+		
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
 		
 	}
-		
-	/**
-     * Puts the entailment annotations calculating of each of the pair T and H
-     * of the specified list of Cas into the entailmentValueList list. 
-     * Each of the Cas of the list contains a single pair T-H.
-     *
-     * @param jcas the list of CAS
-     * @aram entailmentValueList the list of the entailment annotations
-     * 
-     * @throws Exception
-     */
-	private String getEntailmentAnnotation(JCas jcas) 
-			throws Exception {
-		
-		String result = null;
-			
-		try {
-			
-				Pair p = null;
-				FSIterator<TOP> pairIter = jcas.getJFSIndexRepository().getAllIndexedFS(Pair.type);
-				p = (Pair) pairIter.next();
-				String goldAnswer = p.getGoldAnswer();
-				result = goldAnswer;
-			
-		} catch(Exception e) {
-			throw e;
-		}
-			
-		return result;		
-		
-	}	
 	
-	/**
-     * Save the optimized parameters (e.g. threshold) into the configuration file itself
-     */
-	private void saveModel(CommonConfig config) throws IOException {
-    	
-		logger.info("Writing model ...");
-		
-    	BufferedWriter writer = null;
-    	
-    	try {
-    		
-    		String newModel = updateConfigurationFile(config);
-    		
-	    	writer = new BufferedWriter(new OutputStreamWriter(
-	                  new FileOutputStream(config.getConfigurationFileName()), "UTF-8"));
-
-	    	PrintWriter printout = new PrintWriter(writer);
-	    	printout.println(newModel);
-	    	printout.close();
-	    	
-    	} catch (Exception e) {
-    		throw new IOException(e.getMessage());
-    	} finally {
-    		if (writer != null)
-    			writer.close();
-    	}
-    	
-    	logger.info("done.");
-
-    }
-	
-	/**
-     * Initialize the weights of the edit distance operations getting them form the configuration file
-     * 
-     * If all the values of the 4 edit distance operation are defined they are used
-     * to calculate edit distance. Otherwise the weights are read from the configuration file.  
-     * 
-     * @param config the configuration
-     * 
-     */
-    protected void initializeWeights(CommonConfig config) {
-
-    	try{ 
-    		
-    		NameValueTable weightsTable = config.getSection(this.getType());
-    		
-    		//if they weights have already been set use those weights 
-        	if (Double.isNaN(this.mMatchWeight) == false && Double.isNaN(this.mDeleteWeight) == false &&
-        			Double.isNaN(this.mInsertWeight) == false && Double.isNaN(this.mSubstituteWeight) == false)
-        		return;
-    		
-    		this.mMatchWeight = weightsTable.getDouble("match");
-    		this.mDeleteWeight = weightsTable.getDouble("delete");
-    		this.mInsertWeight = weightsTable.getDouble("insert");
-    		this.mSubstituteWeight = weightsTable.getDouble("substitute");
-    		
-    	} catch (Exception e) {
-    		
-    		logger.info("Could not find weights section in configuration file, using defaults");
-    		this.mMatchWeight = 0.0;
-    		this.mDeleteWeight = 0.0;
-    		this.mInsertWeight = 1.0;
-    		this.mSubstituteWeight = 1.0;
-    		
-    	}
-    	
-    }
-    
-    /**
-     * Reads the configuration file and adds the calculated optimized parameters (i.e. the threshold
-     * calculated on the training data set.)
-     * 
-     * @return the configuration file with the optimized parameters added
-     * 
-     */
-    protected String updateConfigurationFile(CommonConfig config) throws IOException {
-    
-    	StreamResult result = new StreamResult(new StringWriter());
-    	
-    	try {
-    			
-    		DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-    		DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-    		Document document = docBuilder.parse(new File(config.getConfigurationFileName()));
-
-    		XPathFactory xpathFactory = XPathFactory.newInstance();
-    		XPath xpath = xpathFactory.newXPath();
-    		
-    		Node trainingAccuracyNode = (Node) xpath.evaluate("//*[@name='model']/*[@name='trainingAccuracy']", document, XPathConstants.NODE);
-    		trainingAccuracyNode.setTextContent(String.valueOf(this.getTrainingAccuracy()));
-    		
-    		TransformerFactory tf = TransformerFactory.newInstance();
-    		Transformer t = tf.newTransformer();
-    		t.transform(new DOMSource(document), result);
-    			       			
-    	}catch (Exception e) {
-    		throw new IOException(e.getMessage());
-    	}
-    	
-    	return result.getWriter().toString();
-	    
-    }
-    
 	
 }
