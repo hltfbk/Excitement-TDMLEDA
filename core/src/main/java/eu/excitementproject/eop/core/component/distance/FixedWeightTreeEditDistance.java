@@ -104,7 +104,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 */
 	private LexicalAligner aligner;
 	/**
-	 * The produce transformations needed to covert T into H
+	 * The produce transformations needed to convert T into H
 	 */
     private List<Transformation> transformations;
 	/**
