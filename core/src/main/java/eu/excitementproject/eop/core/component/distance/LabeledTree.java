@@ -69,7 +69,7 @@ public class LabeledTree extends TreeImpl {
     			nodeId = this.getParent(nodeId);
     			//System.out.print("====" + nodeId);
     		}
-    		System.out.println();
+    		//System.out.println();
     		token_z.setDeprelRelations(relations);
     	}
 		

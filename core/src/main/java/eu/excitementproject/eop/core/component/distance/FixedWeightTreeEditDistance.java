@@ -1,78 +1,43 @@
 package eu.excitementproject.eop.core.component.distance;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-
-
-import org.uimafit.util.JCasUtil;
-
-import org.apache.uima.cas.text.AnnotationIndex;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.tcas.Annotation;
+import org.apache.uima.jcas.cas.StringList;
+import org.uimafit.util.JCasUtil;
+import static org.apache.uima.fit.util.JCasUtil.select;
+import static org.apache.uima.fit.util.JCasUtil.selectCovered;
 
 import treedist.EditScore;
 import treedist.Mapping;
 import treedist.TreeEditDistance;
-import treedist.TreeImpl;
-
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.ART;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.CARD;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.CONJ;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.O;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.POS;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.PP;
-import de.tudarmstadt.ukp.dkpro.core.api.lexmorph.type.pos.PUNC;
-
 
 import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence;
 import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Token;
 import de.tudarmstadt.ukp.dkpro.core.api.syntax.type.dependency.Dependency;
 
-import static org.apache.uima.fit.util.JCasUtil.select;
-import static org.apache.uima.fit.util.JCasUtil.selectCovered;
-
-
 import eu.excitement.type.alignment.Link;
 import eu.excitementproject.eop.common.component.distance.DistanceCalculation;
 import eu.excitementproject.eop.common.component.distance.DistanceComponentException;
 import eu.excitementproject.eop.common.component.distance.DistanceValue;
-import eu.excitementproject.eop.common.component.lexicalknowledge.LexicalResource;
-import eu.excitementproject.eop.common.component.lexicalknowledge.LexicalResourceException;
-import eu.excitementproject.eop.common.component.lexicalknowledge.LexicalRule;
 import eu.excitementproject.eop.common.component.scoring.ScoringComponentException;
 import eu.excitementproject.eop.common.configuration.CommonConfig;
 import eu.excitementproject.eop.common.configuration.NameValueTable;
 import eu.excitementproject.eop.common.exception.ComponentException;
 import eu.excitementproject.eop.common.exception.ConfigurationException;
-import eu.excitementproject.eop.common.representation.partofspeech.ByCanonicalPartOfSpeech;
-import eu.excitementproject.eop.common.representation.partofspeech.PartOfSpeech;
-import eu.excitementproject.eop.common.utilities.Utils;
 import eu.excitementproject.eop.common.utilities.configuration.ImplCommonConfig;
 import eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner;
-import eu.excitementproject.eop.core.component.lexicalknowledge.germanet.GermaNetWrapper;
-import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.WikiExtractionType;
-import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.WikiLexicalResource;
-import eu.excitementproject.eop.core.component.lexicalknowledge.wikipedia.it.WikiLexicalResourceIT;
-import eu.excitementproject.eop.core.component.lexicalknowledge.wordnet.WordnetLexicalResource;
-import eu.excitementproject.eop.core.utilities.dictionary.wordnet.WordNetRelation;
 import eu.excitementproject.eop.lap.implbase.LAP_ImplBase;
-
-
-
 
 
 /**
@@ -104,50 +69,50 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 */
 	private LexicalAligner aligner;
 	/**
-	 * The produce transformations needed to convert T into H
+	 * The transformations converting T into H
 	 */
     private List<Transformation> transformations;
 	/**
 	 * weight for match
 	 */
-    private double mMatchWeight = 0;
+    private final double mMatchWeight = 0;
     /**
 	 * weight for delete
 	 */
-    private double mDeleteWeight = 1;
+    private final double mDeleteWeight = 1;
     /**
 	 * weight for insert
 	 */
-    private double mInsertWeight = 1;
+    private final double mInsertWeight = 1;
     /**
 	 * weight for substitute
 	 */
-    private double mSubstituteWeight = 1;
+    private final double mSubstituteWeight = 1;
     /**
-	 * the activated instance
+	 * the activated instances
 	 */
     private String instances;
     /**
-	 * the resource
-	 */
+     * the set of negative alignment relations
+     */
+    private Set<String> negativeAlignmentsRelations;
     /**
      *  the logger
      */
     static Logger logger = Logger.getLogger(FixedWeightTreeEditDistance.class.getName());
     
-    
     /**
      * Construct a fixed weight edit distance
      */
-
 	public FixedWeightTreeEditDistance() {
     	
         this.transformations = new ArrayList<Transformation>();
-    	initLexicalAligner();
-    	
+        this.negativeAlignmentsRelations = new HashSet<String>();
+        this.instances = null;
+        this.aligner = null;
+        
     }
 
-    
     /** 
 	 * Constructor used to create this object. 
 	 * 
@@ -158,16 +123,61 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     	this();
         
-    	logger.info("Creating an instance of " + this.getComponentName() + " ...");
+    	logger.info("creating an instance of " + this.getComponentName() + " ...");
     
         try {
         	
-	        //get the platform name value table
-	        NameValueTable platformNameValueTable = config.getSection("PlatformConfiguration");
-	        
-	        //get the selected component
-	    	NameValueTable componentNameValueTable = config.getSection(this.getClass().getCanonicalName());
-    		
+	        //get the component configuration
+	    	NameValueTable componentNameValueTable = 
+	    			config.getSection(this.getClass().getCanonicalName());
+	    	
+	    	//get the selected instance
+	    	instances = componentNameValueTable.getString("instances");
+	    	logger.info("using:" + instances);
+	    	
+	    	//get the instance configuration
+	    	NameValueTable instanceNameValueTable = 
+	    			config.getSubSection(this.getClass().getCanonicalName(), instances);
+	    	
+	    	//get the aligner component configuration
+			String componentName = 
+					instanceNameValueTable.getString("alignment-component");
+			logger.info("using:" + componentName);
+			
+			//get the configuration file of the aligner component
+			String cofigurationFile = 
+					instanceNameValueTable.getString("configuration-file");
+			logger.info("component configuration file:" + cofigurationFile);
+			
+			//get the list of the negative alignment relations (e.g. ANTONYM)
+			//Basically alignment links produced by the aligner do not contain or indicate positive 
+			//or negative links - we will need to get the relation type (i.e. ANTONYM) from the link info
+			//and decide whether this link is positive or negative. Deciding for positive or negative
+			//alignments is done on the bases of the negative alignments reported in this list. 
+			String alignmentsRelations = 
+					instanceNameValueTable.getString("negative-alignments");
+			logger.info("negative-alignments:" + alignmentsRelations);
+			String[] splitAlignmentsRelations = alignmentsRelations.split(",");
+			for (int i = 0; i < splitAlignmentsRelations.length; i++)
+				negativeAlignmentsRelations.add(splitAlignmentsRelations[i]);
+				
+			//create an instance of the aligner component
+	    	if (this.aligner == null) {
+				
+				try {
+					
+					Class<?> componentClass = Class.forName(componentName);
+					Constructor<?> componentClassConstructor = componentClass.getConstructor(CommonConfig.class);
+					File configFile = new File(cofigurationFile);
+					ImplCommonConfig commonConfig = new ImplCommonConfig(configFile);
+					this.aligner = (LexicalAligner) componentClassConstructor.newInstance(commonConfig);
+					
+				} catch (Exception e) {
+					throw new ComponentException(e.getMessage());
+				}
+				
+			}
+	    	
     	} catch (ConfigurationException e) {
     		throw new ComponentException(e.getMessage());
     	}
@@ -192,6 +202,12 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	
     }
     
+    /**
+     * Get the transformations needed to transform T into H
+     * 
+     * @return the transformations
+     * 
+     */
     public List<Transformation> getTransformations() {
     	
     	return this.transformations;
@@ -200,12 +216,16 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     
     /** 
-	 * shutdown the resources
+	 * shutdown the component and the used resources
 	 */
 	public void shutdown() {
 		
-		//Silvia you have to shutdown the lexical component
-		//
+		logger.info("shut down ...");
+		
+		this.aligner.cleanUp();
+		this.negativeAlignmentsRelations = null;
+		this.transformations =  null;		 
+		this.instances = null;
 		
 		logger.info("done.");
 		
@@ -218,29 +238,33 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	DistanceValue distanceValue = null;
     	
     	try {
-    		//get the alignments between T and H
-    		Map<String,String> alignments = getAlignments(jcas);
     		
-    	    // get Text
+    		//get the alignments between T and H produced by the aligner component
+    		Map<String,Link> alignments = getAlignments(jcas);
+    	    //get the Text
 	    	JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
-	    	//the dependency tree of t
+	    	//get the dependency tree of Text
 	    	String t_tree = cas2CoNLLX(tView);
-	    	logger.info("T:" + t_tree);
-	    	//the text fragment
+	    	logger.info("\nThe Tree of Text:\n" + t_tree);
+	    	//create the Text fragment
 	    	Fragment t_fragment = getFragment(t_tree);
-	    	// get Hypothesis
+	    	//get the Hypothesis
 	    	JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
-	    	//the dependency tree of t
+	    	//the dependency tree of Hypothesis
 	    	String h_tree = cas2CoNLLX(hView);
-	    	logger.info("H:" + h_tree);
-	    	//the text fragment
+	    	logger.info("\nThe Tree of Hypothesis:\n" + h_tree);
+	    	//create the Hypothesis fragment
 	    	Fragment h_fragment = getFragment(h_tree);
             //calculate the distance between T and H by using the matches
 	    	//provided by the aligner component.
 	    	distanceValue = distance(t_fragment, h_fragment, alignments);
 	    	
     	} catch (Exception e) {
+    		
+    		e.printStackTrace();
+    		System.exit(0);
     		throw new DistanceComponentException(e.getMessage());
+    		
     	}
     	
     	return distanceValue;
@@ -251,41 +275,42 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     @Override
     public Vector<Double> calculateScores(JCas jcas) throws ScoringComponentException {
     
-    //to be checked by roberto
-    	
-     DistanceValue distanceValue = null;
-     Vector<Double> v = new Vector<Double>();
+    	DistanceValue distanceValue = null;
+    	Vector<Double> v = new Vector<Double>();
+	    
+    	try {
+    		
+    		//get the alignments between T and H produced by the aligner component
+    		Map<String,Link> alignments = getAlignments(jcas);
+	 	   	// get Text
+		    JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
+		    //get the dependency tree of Text
+		    String t_tree = cas2CoNLLX(tView);
+		    logger.info("Text:\n" + t_tree);
+		    //create the Text fragment
+		    Fragment t_fragment = getFragment(t_tree);
+		    //get Hypothesis
+		    JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
+		    //the dependency tree of Hypothesis
+		    String h_tree = cas2CoNLLX(hView);
+		    logger.info("Hypothesis:\n" + h_tree);
+		    //create the Hypothesis fragment
+		    Fragment h_fragment = getFragment(h_tree);
+	        //calculate the distance between T and H by using the matches
+		    //provided by the aligner component.
+		    distanceValue = distance(t_fragment, h_fragment, alignments);
+		    	
+    	} catch (Exception e) {
+    		
+    		throw new ScoringComponentException(e.getMessage());
+    		
+    	}
+     
+    	v.add(distanceValue.getDistance());
+	    v.add(distanceValue.getUnnormalizedValue());
     
-     try {
-    	// get Text
-	    	JCas tView = jcas.getView("TextView");
-	    	//the dependency tree of t
-	    	String t_tree = cas2CoNLLX(tView);
-	    	//the text fragment
-	    	Fragment t_fragment = getFragment(t_tree);
-	    	//List<Token> tTokensSequence = getTokenSequences(tView);
-	    	
-	    	// get Hypothesis
-	    	JCas hView = jcas.getView("HypothesisView"); 
-	    	//the dependency tree of t
-	    	String h_tree = cas2CoNLLX(hView);
-	    	//the text fragment
-	    	Fragment h_fragment = getFragment(h_tree);
-	    	//List<Token> hTokensSequence = getTokenSequences(hView);
-
-	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	//distanceValue = distance(tTokensSequence, hTokensSequence);
-	    	//distanceValue = distance(t_fragment, h_fragment);
-    	 
-
-     } catch (Exception e) {
-     throw new ScoringComponentException(e.getMessage());
-     }
-    
-     v.add(distanceValue.getDistance());
-     v.add(distanceValue.getUnnormalizedValue());
-    
-     return v;
+	    return v;
+	     
     }
     
     
@@ -294,54 +319,52 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
      * 
      * @param jcas the CAS containing T and H
      * 
-     * @return key value pairs (e.g. assassin__killer --> WORDNET__3.0__HYPERNYM__0.5__TtoH) where key 
-     * represents the tokens one in T and the other in H that have been alignment (e.g. token1_T__token5_H; 
-     * a `__` character is used to separate the 2 tokens).
-     * The value is instead the resource, the resource version, the relation that has been used to do the
+     * @return key value pairs 
+     * key represents the alignment tokens, e.g. assassin__killer (`___` separates the 2 tokens)
+     * values are instead the resource, the resource version, the relation that has been used to do the 
      * alignment. Other information is about the strength of the alignment and the direction of the alignment
      * itself, e.g. WORDNET__3.0__HYPERNYM__0.5__TtoH
      * 
      */
-    private Map<String,String> getAlignments(JCas jcas) {
+    private Map<String,Link> getAlignments(JCas jcas) throws Exception {
 		
-    	Map<String,String> result = new HashMap<String,String>();
+    	Map<String,Link> result = new HashMap<String,Link>();
     	
 		try {
 			
-			// Call the aligner to align T and H of pair 1
-			logger.info("aligning ...");
+			// Call the aligner component to align T and H
+			logger.info("\ngetting the alignments ...");
 			aligner.annotate(jcas);
 			logger.info("done.");
 						
-			// Print the alignment of pair 1
+			logger.info("\n\nalignments list:\n");
+			
+			//get the HYPOTHESIS view
 			JCas hypoView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW);
 			
+			//cycle through the alignments
 			for (Link link : JCasUtil.select(hypoView, Link.class)) {
 				
-				logger.info(String.format("Text phrase: %s, " +
+				logger.info(String.format("\nText phrase: %s, " +
 						"Hypothesis phrase: %s, " + 
 						"id: %s, confidence: %f, direction: %s", 
 						link.getTSideTarget().getCoveredText(),
 						link.getHSideTarget().getCoveredText(),
 						link.getID(), link.getStrength(),
-						link.getDirection().toString()));
+						link.getDirection().toString())); 
 				
 				String key = link.getTSideTarget().getCoveredText() + 
 				        		"__" + 
 				        		link.getHSideTarget().getCoveredText();
-				        
-				String value = link.getID() + 
-				        		"__" + 
-				        		link.getStrength() + 
-				        		"__" +
-				        		link.getDirection().toString();
-				        
-				result.put(key, value);
+				     
+				result.put(key, link);
 				
 			}
 			
 		} catch (Exception e) {
-			logger.info("Could not process the pair. " + e.getMessage());
+			
+			throw new Exception(e.getMessage());
+			
 		}
 		
 		return result;
@@ -350,98 +373,136 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     
     /**
-     * Returns the weighted edit distance between T and H.
+     * Returns the weighted edit distance between T and H. During this
+     * phase the transformations producing H from T are calculated too.
      * 
-     * @param t
-     * @param h
+     * @param t the text fragment 
+     * @param h the hypothesis fragment
      * 
      * @return The edit distance between the sequences of tokens
      * 
      * @throws ArithmeticException
      * 
      */
+    public DistanceValue distance(Fragment t, Fragment h, Map<String,Link> alignments) throws ArithmeticException {
 
-    public DistanceValue distance(Fragment t, Fragment h, Map<String,String> alignments) throws ArithmeticException {
-
-        	
     	//here we need to call the library for calculating tree edit distance
-    	
     	double distance = 0.0;
     	double norm = 1.0;
     	
     	//Creating the Tree of Text
     	LabeledTree t_tree = createTree(t);
-
-    	logger.info("T:" + t_tree);
+        //logger.info("T:" + t_tree);
     	
     	//Creating the Tree of Hypothesis
     	LabeledTree h_tree = createTree(h);
-    	logger.info("H:" + h_tree);
+    	//logger.info("H:" + h_tree);
 		
-	    //Create a tree for T and H
-		TreeEditDistance dist = new TreeEditDistance(new ScoreImpl(t_tree, h_tree, alignments));
+    	//creating an instance of scoreImpl containing the definition of the 
+    	//the edit distance operations.
+    	ScoreImpl scoreImpl = new ScoreImpl(t_tree, h_tree, alignments);
+    	
+	    //Create an instance of TreeEditDistance
+		TreeEditDistance dist = new TreeEditDistance(scoreImpl);
+		
+		//This is used for storing the sequence of edit distance operations
 		Mapping map = new Mapping(t_tree, h_tree);
+		
 		//Distance calculation
 		distance = dist.calc(t_tree, h_tree, map);
 		
-		logger.info("Tree edit distance:" + distance);
-	    logger.info("Sequence of transformations:");
+		try {
+		
+		
 	    
+        this.transformations = new ArrayList<Transformation>();
+        
+	    //cycle through the list of the edit distance operations (i.e. replace -rep, 
+        //insertion -ins, deleletion -del)
+	    //operations are in the format: rep:2,3 rep:1,1 rep:0,0 ins:2 rep:3,4 rep:4,5
+        //e.g. rep:2,3 means replacing node id_2 with node id_3
 	    List<String> operationSequence = map.getSequence();
-	    for (int g = 0; g < operationSequence.size(); g++) {
-	    	String operation = (String)operationSequence.get(g);
-	    	//e.g. rep:2,3 rep:1,1 rep:0,0 ins:2 rep:3,4 rep:4,5
-	    	//System.err.print(operation + " ");
-	    	String operationName = operation.split(":")[0];
-	    	String nodes = operation.split(":")[1];
+	    
+	    logger.info("\ntree edit distance:" + distance);
+		logger.info("\ntransformations:" + operationSequence.size());
+	    logger.info("\nlist of transformations:");
+	    
+	    for (int i = 0; i < operationSequence.size(); i++) {
+	    	String operation_i = (String)operationSequence.get(i);
+	    	//System.err.print(operation_i + " ");
+	    	String transformationType = operation_i.split(":")[0];
+	    	String nodes = operation_i.split(":")[1];
 	    	Transformation trans = null;
-	    	if (operationName.contains("rep")) {
+	    	//case of replace operations; the library we use for tree edit distance doesn't distinguish 
+	    	//between replace and match operations. Distinguish between replace and match is done in this way: 
+	    	//
+	    	//match: 
+	    	//  -- lexical match between tokens
+	    	//  -- positive alignments
+	    	//
+	    	//replace:
+	    	//  -- no lexical match between tokens
+	    	//  -- negative alignments or no alignments
+	    	//
+	    	if (transformationType.contains(Transformation.REPLACE)) {
 		    	int node1 = Integer.parseInt(nodes.split(",")[0]);
 		    	int node2= Integer.parseInt(nodes.split(",")[1]);
-		    	FToken token1 = t_tree.getToken(node1);
-		    	FToken token2 = h_tree.getToken(node2);
-		    	String alignmentType = null;
-		    	if (token1.getLemma().equalsIgnoreCase(token2.getLemma())) {
-		    		alignmentType = "lexical";
-		    		operationName = "match";
-		    	}
-		    	else if (alignments.get(token1.getLemma() + "__" + token2.getLemma()) != null) {
-		    		alignmentType = alignments.get(token1.getLemma() + "__" + token2.getLemma());
-		    		operationName = "match";
-		    	}
-		    	//creating the Transformation
-		    	trans = new Transformation(operationName,alignmentType,token1,token2);
-		    	transformations.add(trans);
-		    	logger.info("operation:" + operationName + " " + "alignment:" + alignmentType + " token_T:" + token1 + " token_H:" + token2);
+		    	FToken t_token = t_tree.getToken(node1);
+		    	FToken h_token = h_tree.getToken(node2);
+		    	Link alignment = getAlignment(t_token, h_token, alignments);
+		    	//LOCAL-ENTAILMENT, LOCAL-CONTRADICTION
+		    	String alignmentMatchType = getAlignmentMatchType(t_token, h_token, alignment);
 		    	
+		    	if (alignmentMatchType == null) {
+		    		trans = new Transformation(Transformation.REPLACE, alignmentMatchType, t_token, h_token);
+		    	}
+		    	else if (alignmentMatchType.equals("LOCAL-CONTRADICTION")) {
+		    		trans = new Transformation(Transformation.REPLACE, alignmentMatchType, t_token, h_token);
+		    	}
+		    	else if (alignmentMatchType.equals("LOCAL-ENTAILMENT")) {
+		    		trans = new Transformation(Transformation.MATCH, alignmentMatchType, t_token, h_token);
+		    	}
+		    	
+			    transformations.add(trans);
+			    
+			    logger.info("\n" + trans.toString());
 	    	}
-	    	else if (operationName.contains("ins")){
+	    	//case of insertion
+	    	else if (transformationType.contains(Transformation.INSERTION)){
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = h_tree.getToken(node);
-		    	//Silvia here we need to create an object Transformation containing the following
-		    	//information
-		    	trans = new Transformation(operationName, token);
+		    	trans = new Transformation(transformationType, token);
 		    	transformations.add(trans);
-		    	logger.info("operation:" + operationName + " token_H:" + token);
+		    	logger.info(trans.toString());
 	    	}
-	    	else { //deletion
+	    	//case of deletion
+	    	else {
 	    		int node = Integer.parseInt(nodes);
 		    	FToken token = t_tree.getToken(node);
-		    	//Silvia here we need to create an object Transformation containing the following
-		    	//information
-		    	trans = new Transformation(operationName, token);
+		    	trans = new Transformation(transformationType, token);
 		    	transformations.add(trans);
-		    	logger.info("operation:" + operationName + " token_T:" + token);
+		    	logger.info(trans.toString());
 	    	}
-	    	System.out.println(trans);
-
+	    	
 	    }
-		
+	    
+    	// norm is the distance equivalent to the cost of inserting all the nodes in H and deleting
+    	// all the nodes in T. This value is used to normalize distance values.
+    	norm = (double)(t_tree.size() * this.mDeleteWeight + h_tree.size() * this.mInsertWeight);
+    	
+    	double normalizedDistanceValue = distance/norm;
+    	
+    	} catch (Exception e) 
+    	{ e.printStackTrace(); System.exit(0);}
+    	
+    	//return new EditDistanceValue(normalizedDistanceValue, false, distance);
     	return new EditDistanceValue(distance, false, distance);
-                
-     }
+	    
+    }
     
-    
+    /**
+     * Create a tree
+     */
     private LabeledTree createTree(Fragment f) {
     	
     	LabeledTree lTree;
@@ -480,50 +541,56 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     }
     
     
-    // this method accept in input a tree (it has been produced by cas2CoNLLX
-    // and return a fragment containing all the tokens in the tree
-    private Fragment getFragment(String dependencyTree) {
-    	System.out.println(dependencyTree);
+    /**
+     * this method accepts in input a tree (it has been produced by cas2CoNLLX
+     * and it is in CoNLL-X format and returns a fragment containing all the tokens in the tree
+     * 
+     * @param dependencyTree
+     * 
+     * @return the fragment
+     *
+     * @throws Exception
+     */
+    private Fragment getFragment(String dependencyTree) throws Exception {
+    	
+    	//System.out.println(dependencyTree);
     	Fragment fragment = null;
     	
-    	//here we need to parse the tree CoNLLX format (i.e. dependencyTree)
-    	//and for each line of it we would need to create an object of the class Token
-    	//and the put it into the Fragment
-    	try{
+    	/* here we need to parse the tree CoNLLX format (i.e. dependencyTree)
+    	/ and for each line of it we would need to create an object of the class Token
+    	/ and the put it into the Fragment
+    	*/
+    	try {
+    		
     		fragment = new Fragment();
 
-    	//and for each line of it we would need to create an object of the class FToken
-    	//and then put it into the Fragment
-    	
-
-    	String[] lines = dependencyTree.split("\n");
-    	for (int i = 0; i < lines.length; i++) {
-    		String[] fields = lines[i].split("\\s");
-    		//for (int j = 0; j < fields.length; j++) {
-    			int tokenId = Integer.parseInt(fields[0]) - 1;
-    			String form = fields[1];
-
-    			String lemma = fields[2];	
-    			String pos = fields[3];	
-    			int head;
-    			if (fields[6].equals("_")) {
-    				head = -1;
-    				//System.out.println("====================================");
-    			}
-    			else
-    				head = Integer.parseInt(fields[6]) - 1;
-    			
-    			String deprel = fields[7];
-    			FToken token_i = new FToken(tokenId, form, lemma, pos, head, deprel);
-
-    			fragment.addToken(token_i);
-    			
-    		//}
-    	}
-    	}
-    	catch (Exception e) {
-    		System.err.println(e.getMessage());
-    		System.exit(0);
+	    	String[] lines = dependencyTree.split("\n");
+	    	
+	    	for (int i = 0; i < lines.length; i++) {
+	    		String[] fields = lines[i].split("\\s");
+	    		int tokenId = Integer.parseInt(fields[0]) - 1;
+	    		String form = fields[1];	
+	    		String lemma = fields[2];	
+	    		String pos = fields[3];	
+	    		
+	    		int head;
+	    		if (fields[6].equals("_")) {
+	    			head = -1;
+	    		}
+	    		else
+	    			head = Integer.parseInt(fields[6]) - 1;
+	    			
+	    		String deprel = fields[7];
+	    	    //and for each line of it we would need to create an object of the class FToken
+	    	    //and then put it into the Fragment
+	    		FToken token_i = new FToken(tokenId, form, lemma, pos, head, deprel);
+	    		fragment.addToken(token_i);
+	    	}
+	    	
+	    } catch (Exception e) {
+    		
+    		throw new Exception(e.getMessage());
+    		
     	}
     	return fragment;
     	
@@ -531,11 +598,15 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     
     
 
-    /*
+    /**
      * Given a cas (it contains the T view or the H view) in input it produces a
-     * String containing the tree in the CoNLL-X format
+     * string containing the tree in the CoNLL-X format
+     * 
+     *  @param aJCas the cas
+     *  
+     *  @return the tree in the CoNLL-X format
      */
-    public String cas2CoNLLX(JCas aJCas) throws IOException {
+    private String cas2CoNLLX(JCas aJCas) {
     	
     	StringBuffer result = new StringBuffer();
     	
@@ -552,7 +623,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
                 dependentMap.put(dependecny.getDependent()
                         .getAddress(), dependecny.getGovernor().getAddress());
             }
-
 
             int i = 1;
             for (Token token : selectCovered(Token.class, sentence)) {
@@ -595,6 +665,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
                 }
                 j++;
             }
+            
             //IOUtils.write("\n", aOs, aEncoding);
             //System.out.print("\n");
             result.append("\n");
@@ -606,28 +677,55 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     }
 
     
-    /**
-	 * Initialize the lexical aligner and prepare the tests
-	 */
-	public void initLexicalAligner() {
+	/**
+     * Given 2 tokens, token1 and token2, it says if the 2 token match.
+     * The match is calculated on the bases of the tokens lemma.
+     * 
+     * @param token1
+     * @param token2
+     * 
+     * @return if the 2 tokens match
+     */
+	private String getAlignmentMatchType(FToken token1, FToken token2, Link alignment) {
+    	
+		String alignmentLabel = null;;
 		
-		try {
-			
-			// Create and initialize the aligner
-			logger.info("Initialize the Lexical Aligner");
-			File configFile = new File(
-					"src/test/resources/configuration-file/LexicalAligner_TreeEditDistance_EN.xml");
-			ImplCommonConfig commonConfig = new ImplCommonConfig(configFile);
-			aligner = new LexicalAligner(commonConfig);
-			
-		} catch (Exception e) {
-			 
-			logger.info("Failed initializing the LexicalAligner" + 
-					e.getMessage());
-		}
+    	if (token1.getLemma().equalsIgnoreCase(token2.getLemma())) {
+    		alignmentLabel = "LOCAL-ENTAILMENT";
+    		return alignmentLabel;
+    	}
+    	else if (alignment != null) {
+    		//alignmentLabel = alignment.getGroupLabel();
+    		//to be completed when the getGroupLabel will be implemented
+    		//alignmentLabel = "LOCAL-CONTRADICTION";
+    		alignmentLabel = "LOCAL-ENTAILMENT";
+    		return alignmentLabel;
+    	}
+    		
+    	return alignmentLabel;
+    	
 	}
-    
-    
+    	
+	
+	/**
+	 * Given 2 tokens, token1 and token2, it says if between the tokens
+	 * there is a positive or negative alignement.
+     * 
+	 * @param token1 token1
+	 * @param token2 token2
+	 * @param alignments the alignments
+	 * 
+	 * @return if the 2 tokens match
+	 */
+	private Link getAlignment(FToken token1, 
+			FToken token2, Map<String,Link> alignments) {
+    	
+		Link alignment = alignments.get(token1.getLemma() + "__" + token2.getLemma());
+		
+		return alignment;
+	    
+    }
+	
     
     /**
      * The <code>EditDistanceValue</code> class extends the DistanceValue
@@ -641,13 +739,14 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	}
     	
     }
+   
     
     class ScoreImpl implements EditScore {
 		
 		private final LabeledTree tree1, tree2;
-		private final Map<String,String> alignments;
-
-		public ScoreImpl(LabeledTree tree1, LabeledTree tree2, Map<String,String> alignments) {
+		private final Map<String,Link> alignments;
+		
+		public ScoreImpl(LabeledTree tree1, LabeledTree tree2, Map<String,Link> alignments) {
 			
 			this.tree1 = tree1;
 			this.tree2 = tree2;
@@ -658,16 +757,31 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		@Override
 		public double replace(int node1, int node2) {
 			
+			Link alignment = getAlignment(tree1.getToken(node1), tree2.getToken(node2), alignments);
 			
-			if ( tree1.getLabel(node1) == tree2.getLabel(node2))
+			String alignmentMatchType = getAlignmentMatchType(tree1.getToken(tree1.getLabel(node1)), tree2.getToken(tree2.getLabel(node2)), alignment);
+			
+			if (alignmentMatchType != null && alignmentMatchType.equals("LOCAL-ENTAILMENT")) 
+			
+			//if ( //tree1.getLabel(node1) == tree2.getLabel(node2) )// && 
+				//tree1.getToken(tree1.getLabel(node1)).equals(tree2.getLabel(node2)))
+				
+					//(tree1.getToken(tree1.getLabel(node1)).getLemma().equals(tree2.getToken(tree2.getLabel(node2)).getLemma())))
+					
+				//getAlignmentMatchType(tree1.getToken(tree1.getLabel(node1)), tree2.getToken(tree2.getLabel(node2)), alignment).equals("LOCAL-ENTAILMENT"))
 			//tree1.getToken(node1).getLemma().equalsIgnoreCase(tree2.getToken(node2).getLemma())) 
 					{
-				//return 0;
-				return mMatchWeight;
+				
+				//System.err.println(tree1.getLabel(node1) + "\t" +  tree2.getLabel(node2));
+				//System.err.println(tree1.getToken(tree1.getLabel(node1)) + "\t" + tree2.getToken(tree2.getLabel(node2)));
+				//System.err.println("==============================");
+				
+				return 0;
+				//return mMatchWeight;
 			} else {
 				//return 4;
-				//return 1;
-				return mSubstituteWeight;
+				return 1;
+				//return mSubstituteWeight;
 			}
 		}
 		
@@ -686,10 +800,5 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		}
 		
 	}
-
-    
-    
-    
-
     
 }

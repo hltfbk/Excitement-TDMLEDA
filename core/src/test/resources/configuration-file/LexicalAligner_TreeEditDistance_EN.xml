@@ -26,7 +26,7 @@
 			<property name = "useFirstSenseOnlyLeft">true</property>
 			<property name = "useFirstSenseOnlyRight">true</property>
 			<property name = "entailing-relations">SYNONYM,DERIVATIONALLY_RELATED,HYPERNYM,INSTANCE_HYPERNYM,MEMBER_HOLONYM,PART_HOLONYM,ENTAILMENT,SUBSTANCE_MERONYM</property>
-			<property name = "wordnet-depth">2</property>
+			<property name = "wordnet-depth">3</property>
 		</section>
 		
 		<!-- CatVar configuration parameters -->
