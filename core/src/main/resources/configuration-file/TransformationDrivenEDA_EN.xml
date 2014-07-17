@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- 
+
+Language: English
+
+EDA: EditDistanceEDA
+
+Description: Given a certain configuration (i.e. the configuration file), the edit distance EDA can be 
+trained over a specific data set (i.e. trainDir) in order to optimize its performance (i.e. accuracy or
+F1 measure). In the training phase the EDA produces a distance model for the data set, which includes a
+distance threshold that best separates the positive and negative examples in the training data. The calculated
+threshold is then saved in the configuration file itself. During the test phase the configuration file
+is read and the reported threshold used so that T-H pairs resulting in a distance below the threshold are
+classified as ENTAILMENT, while pairs above the threshold are classified as NONENTAILMENT. 
+
+EditDistanceEDA uses the weights of the 3 different edit distance operations (i.e. delete, insert, substitute)
+reported in the configuration file to calculate the distance between T and H. To calculate this distance 
+EditDistance can use either the FixedWeightTokenEditDistance or FixedWeightLemmaEditDistance component.
+FixedWeightTokenEditDistance calculates the distance between T and H by using the tokens whereas FixedWeightLemmaEditDistance
+uses the lemma of the tokens (in this case a pipeline producing the lemma had to be used for preprocessing the data set).
+In addition FixedWeightTokenEditDistance and FixedWeightLemmaEditDistance can exploit external resources like
+WordNet and Wikipedia.
+
+From the configuration file it is possible to select different instances of EditDistanceEDA; this is done
+by selecting the component to be used (i.e. FixedWeightTokenEditDistance or FixedWeightLemmaEditDistance) and
+then one of the available configurations of the selected component (e.g. basic, wordnet, wikipedia).
+
+Basically the configuration file represents a single experiment where information about the used EDA, its
+parameters, the data set used to calculate the threshold and the threshold itself are all available. Sharing
+a configuration file means allowing other users to replicate the same experiment under the same condition.
+
+--><configuration>
+
+
+    <!-- Platform configuration section; the information in this section is used by the EOPRunner class being
+    able to perform both the processing of the data set and running the EDA -->
+	<section name="PlatformConfiguration">
+		<!-- The EDA to be used: EditDistanceEDA -->
+		<property name="activatedEDA">eu.excitementproject.eop.core.TransformationDrivenEDA</property>
+		<!-- The language: [EN] -->
+		<property name="language">EN</property>
+		<!-- The linguistic annotation pipeline to preprocess the data to be annotated: [OpenNLPTaggerEN|TreeTaggerEN] -->
+		<!-- Differently to OpenNLPTagger, TreeTagger can produce the lemma and it is the pipeline to be
+		used when FixedWeightLemmaEditDistance is selected. Be sure to have TreeTagger installed before using it -->
+		<!-- <property name="activatedLAP">eu.excitementproject.eop.lap.dkpro.TreeTaggerEN</property> -->
+		<property name="activatedLAP">eu.excitementproject.eop.lap.dkpro.MaltParserEN</property>
+	</section>
+	
+	
+	<!-- FixedWeightTokenEditDistance uses the token to calculate the distance between each pair T-H -->
+	<section name="eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance">
+	    
+	    <!-- The configuration to be used by the component -->
+	    <property name="instances">basic</property>
+	  
+		<!-- This configuration uses LexicalAligner -->
+		<subsection name="basic">
+		    <property name="negative-alignments">ANTONYM</property>
+			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property>
+		    <property name="configuration-file">src/test/resources/configuration-file/LexicalAligner_TreeEditDistance_EN.xml</property>
+		</subsection>
+		
+	</section>	
+	
+		
+	<!-- EditDistanceBasicEDA uses the weights in the configuration file to calculate the entailment -->
+	<section name="eu.excitementproject.eop.core.TransformationDrivenEDA">
+	
+		<property name="trainDir">/tmp/training/</property> 
+		<property name="testDir">/tmp/test/</property>
+		<property name="tmpDir">/tmp/temporaryfiles/</property>
+		<property name="model">/tmp/temporaryfiles/NaiveBayes.model</property>
+		<property name="classifier">weka.classifiers.bayes.NaiveBayes</property>
+		<property name="cross-validation">false</property>
+		<property name="feature-selection">false</property>
+		<property name="max-number-of-features">5</property>
+		
+		<!-- component to be used by EDA: [FixedWeightTokenEditDistance|FixedWeightLemmaEditDistance] 
+		FixedWeightLemmaEditDistance can be used only when the preprocessing pipeline provides lemmas-->
+	    <property name="components">eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance</property>
+	    
+	
+	</section>
+	
+</configuration>
