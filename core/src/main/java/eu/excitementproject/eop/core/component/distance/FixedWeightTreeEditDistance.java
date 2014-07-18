@@ -93,10 +93,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 */
     private String instances;
     /**
-     * the set of negative alignment relations
-     */
-    private Set<String> negativeAlignmentsRelations;
-    /**
      *  the logger
      */
     static Logger logger = Logger.getLogger(FixedWeightTreeEditDistance.class.getName());
@@ -107,7 +103,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	public FixedWeightTreeEditDistance() {
     	
         this.transformations = new ArrayList<Transformation>();
-        this.negativeAlignmentsRelations = new HashSet<String>();
         this.instances = null;
         this.aligner = null;
         
@@ -149,18 +144,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 					instanceNameValueTable.getString("configuration-file");
 			logger.info("component configuration file:" + cofigurationFile);
 			
-			//get the list of the negative alignment relations (e.g. ANTONYM)
-			//Basically alignment links produced by the aligner do not contain or indicate positive 
-			//or negative links - we will need to get the relation type (i.e. ANTONYM) from the link info
-			//and decide whether this link is positive or negative. Deciding for positive or negative
-			//alignments is done on the bases of the negative alignments reported in this list. 
-			String alignmentsRelations = 
-					instanceNameValueTable.getString("negative-alignments");
-			logger.info("negative-alignments:" + alignmentsRelations);
-			String[] splitAlignmentsRelations = alignmentsRelations.split(",");
-			for (int i = 0; i < splitAlignmentsRelations.length; i++)
-				negativeAlignmentsRelations.add(splitAlignmentsRelations[i]);
-				
 			//create an instance of the aligner component
 	    	if (this.aligner == null) {
 				
@@ -223,7 +206,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		logger.info("shut down ...");
 		
 		this.aligner.cleanUp();
-		this.negativeAlignmentsRelations = null;
 		this.transformations =  null;		 
 		this.instances = null;
 		
@@ -451,7 +433,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    	FToken h_token = h_tree.getToken(node2);
 		    	Link alignment = getAlignment(t_token, h_token, alignments);
 		    	//LOCAL-ENTAILMENT, LOCAL-CONTRADICTION
-		    	String alignmentMatchType = getAlignmentMatchType(t_token, h_token, alignment);
+		    	String alignmentMatchType = getAlignmentType(t_token, h_token, alignment);
 		    	
 		    	if (alignmentMatchType == null) {
 		    		trans = new Transformation(Transformation.REPLACE, alignmentMatchType, t_token, h_token);
@@ -686,21 +668,28 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
      * 
      * @return if the 2 tokens match
      */
-	private String getAlignmentMatchType(FToken token1, FToken token2, Link alignment) {
+	private String getAlignmentType(FToken token1, FToken token2, Link alignment) {
     	
 		String alignmentLabel = null;;
 		
-    	if (token1.getLemma().equalsIgnoreCase(token2.getLemma())) {
-    		alignmentLabel = "LOCAL-ENTAILMENT";
-    		return alignmentLabel;
-    	}
-    	else if (alignment != null) {
-    		//alignmentLabel = alignment.getGroupLabel();
-    		//to be completed when the getGroupLabel will be implemented
-    		//alignmentLabel = "LOCAL-CONTRADICTION";
-    		alignmentLabel = "LOCAL-ENTAILMENT";
-    		return alignmentLabel;
-    	}
+		if (token1.getDeprel().equals(token2.getDeprel())) {
+		
+	    	if (token1.getLemma().equalsIgnoreCase(token2.getLemma())) {
+	    		alignmentLabel = "LOCAL-ENTAILMENT";
+	    		return alignmentLabel;
+	    	}
+	    	else if (alignment != null) {
+	    		//alignmentLabel = alignment.getGroupLabel();
+	    		//to be completed when the getGroupLabel will be implemented
+	    		//alignmentLabel = "LOCAL-CONTRADICTION";
+	    		 if (alignment.getDirectionString().equals("TtoH"))
+	    			 alignmentLabel = "LOCAL-ENTAILMENT";
+	    		 else if (alignment.getDirectionString().equals("HtoT"))
+	    			 alignmentLabel = "LOCAL-CONTRADICTION";
+	    		return alignmentLabel;
+	    	}
+	    	
+		}
     		
     	return alignmentLabel;
     	
@@ -759,7 +748,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			
 			Link alignment = getAlignment(tree1.getToken(node1), tree2.getToken(node2), alignments);
 			
-			String alignmentMatchType = getAlignmentMatchType(tree1.getToken(tree1.getLabel(node1)), tree2.getToken(tree2.getLabel(node2)), alignment);
+			String alignmentMatchType = getAlignmentType(tree1.getToken(tree1.getLabel(node1)), tree2.getToken(tree2.getLabel(node2)), alignment);
 			
 			if (alignmentMatchType != null && alignmentMatchType.equals("LOCAL-ENTAILMENT")) 
 			
