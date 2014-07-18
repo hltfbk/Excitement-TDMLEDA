@@ -32,6 +32,7 @@ import weka.core.SparseInstance;
 import weka.core.SerializationHelper;
 import weka.filters.Filter;
 import weka.filters.supervised.attribute.AttributeSelection;
+import weka.filters.unsupervised.attribute.Normalize;
 
 import eu.excitementproject.eop.common.DecisionLabel;
 import eu.excitementproject.eop.common.EDABasic;
@@ -612,9 +613,11 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			logger.info("input data set:\n" + inputDataset);
 			
 			//enable feature selection
-			//if (this.featureSelection == true) {
-			//	selectFeatures();
-			//}
+			if (this.featureSelection == true) {
+				selectFeatures();
+				//normalize();
+				logger.info("input data set after feature selection:\n" + inputDataset);
+			}
 			
 			//save the list of the features with their index into a file to be used
 			//during the test phase (see the process method)
@@ -662,14 +665,14 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//@attribute attr8 numeric
 			FastVector attributes = new FastVector();
 			
-			for (Entry<String, Integer> entry  : entriesSortedByValues(featuresList)) {
+			for (Entry<String, Integer> entry : entriesSortedByValues(featuresList)) {
 		        String featureName = entry.getKey();
 				//each of the extracted features is a new attribute
 				Attribute attribute_i = new Attribute(featureName);
 				//adding the attribute_i into the list of the attributes
-				System.err.println(attribute_i +  "\t" + featuresList.get(featureName));
+				//System.err.println(attribute_i +  "\t" + featuresList.get(featureName));
 				attributes.addElement(attribute_i);
-				logger.info("adding attribute_i:" + attributes.size());
+				//logger.info("adding attribute_i:" + attributes.size());
 			}
 			
 			// 2) defining the class attribute, e.g.
@@ -684,8 +687,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			inputDataset = new Instances("dataset", attributes, 0);
 			
 			//the last attribute is the class
-			inputDataset.setClassIndex(featuresList.size());
-			
+			//inputDataset.setClassIndex(featuresList.size());
+			inputDataset.setClassIndex(inputDataset.numAttributes() - 1);
 			//logger.info("data set:\n" + inputDataset);
 		
 		} catch (Exception e) {
@@ -729,6 +732,11 @@ public class TransformationDrivenEDA<T extends TEDecision>
 						instance_i.setValue(featureIndex, 1.0);//1.0 is the feature weight
 					}
 				}
+				if (instance_i.numValues() == 0) {
+					int featureIndex;
+					featureIndex = featuresList.get("fake");
+					instance_i.setValue(featureIndex, 1.0);//1.0 is the feature weight
+				}
 				//the last value is that of the annotation class
 				instance_i.setValue(featuresList.size(), classesList.indexOf(annotation.get(i)));
 				//adding the instance into the data set
@@ -751,10 +759,10 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		
 		logger.info("Initialize classes list ...");
 		
-		classesList = new FastVector();
+		this.classesList = new FastVector();
 		//the 'null' value has been added to solve the issue saving SparseInstance objects from 
 		//datasets that have string attribute; see WekaManual-3-6-10-1.pdf
-		classesList.addElement("null");
+		classesList.addElement("fake");
 		
 		logger.info("done.");
 		
@@ -765,6 +773,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		logger.info("Initialize features list ...");
 		
 		this.featuresList = new HashMap<String,Integer>();
+		this.featuresList.put("fake", 0);
 		
 		logger.info("done.");
 		
@@ -1039,6 +1048,17 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	}
 	
 	
+	public void normalize() throws Exception {
+		
+		//Normalize training data
+	    Normalize norm = new Normalize();
+	    norm.setInputFormat(inputDataset);
+	    Instances newData = Filter.useFilter(inputDataset, norm);
+	    inputDataset = newData;
+	    
+	}
+	
+	
 	/**
 	 * 
 	 * selects a given number of features by info gain eval
@@ -1059,13 +1079,11 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		    filter.setSearch(search);
 		    filter.setInputFormat(inputDataset);
 		    Instances newData = Filter.useFilter(inputDataset, filter);
-		    
 		    int numberOfremovedFeatures = inputDataset.numAttributes() - newData.numAttributes();
-		    
-		    logger.info("removed:" + numberOfremovedFeatures);
+		    logger.info("removed features:" + numberOfremovedFeatures);
 		    
 		    inputDataset= newData;
-	    
+		    
 		} catch (Exception ex) {
     	
 			throw new Exception(ex.getMessage());
@@ -1117,11 +1135,9 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				System.exit(0);
 			}
 			
-			
-			
 			tdEDA.startTraining(config);
-			
-			System.exit(0);
+
+			//System.exit(0);
 			
 			File f = new File("/tmp/training/");
 			

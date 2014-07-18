@@ -54,7 +54,6 @@ a configuration file means allowing other users to replicate the same experiment
 	  
 		<!-- This configuration uses LexicalAligner -->
 		<subsection name="basic">
-		    <property name="negative-alignments">ANTONYM</property>
 			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property>
 		    <property name="configuration-file">src/test/resources/configuration-file/LexicalAligner_TreeEditDistance_EN.xml</property>
 		</subsection>
@@ -72,7 +71,7 @@ a configuration file means allowing other users to replicate the same experiment
 		<property name="classifier">weka.classifiers.bayes.NaiveBayes</property>
 		<property name="cross-validation">false</property>
 		<property name="feature-selection">false</property>
-		<property name="max-number-of-features">5</property>
+		<property name="max-number-of-features">3</property>
 		
 		<!-- component to be used by EDA: [FixedWeightTokenEditDistance|FixedWeightLemmaEditDistance] 
 		FixedWeightLemmaEditDistance can be used only when the preprocessing pipeline provides lemmas-->
