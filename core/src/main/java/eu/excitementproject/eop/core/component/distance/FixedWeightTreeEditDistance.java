@@ -226,7 +226,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	    //get the Text
 	    	JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 	    	//get the dependency tree of Text
-	    	String t_tree = cas2CoNLLX(tView);
+	    	String t_tree = removePunctuation(cas2CoNLLX(tView));
 	    	logger.info("\nThe Tree of Text:\n" + t_tree);
 	    	//create the Text fragment
 	    	Fragment t_fragment = getFragment(t_tree);
@@ -234,6 +234,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 	    	//the dependency tree of Hypothesis
 	    	String h_tree = cas2CoNLLX(hView);
+	    	//TODO add here the method to remove the stop words
 	    	logger.info("\nThe Tree of Hypothesis:\n" + h_tree);
 	    	//create the Hypothesis fragment
 	    	Fragment h_fragment = getFragment(h_tree);
@@ -267,7 +268,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 	   	// get Text
 		    JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 		    //get the dependency tree of Text
-		    String t_tree = cas2CoNLLX(tView);
+		    String t_tree = removePunctuation(cas2CoNLLX(tView));
+		    //TODO add here the method to clean stop words
 		    logger.info("Text:\n" + t_tree);
 		    //create the Text fragment
 		    Fragment t_fragment = getFragment(t_tree);
@@ -275,9 +277,11 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 		    //the dependency tree of Hypothesis
 		    String h_tree = cas2CoNLLX(hView);
+		    //TODO add here the method to clean stop words
 		    logger.info("Hypothesis:\n" + h_tree);
 		    //create the Hypothesis fragment
 		    Fragment h_fragment = getFragment(h_tree);
+		    
 	        //calculate the distance between T and H by using the matches
 		    //provided by the aligner component.
 		    distanceValue = distance(t_fragment, h_fragment, alignments);
@@ -375,11 +379,9 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	//Creating the Tree of Text
     	LabeledTree t_tree = createTree(t);
         //logger.info("T:" + t_tree);
-    	
     	//Creating the Tree of Hypothesis
     	LabeledTree h_tree = createTree(h);
     	//logger.info("H:" + h_tree);
-		
     	//creating an instance of scoreImpl containing the definition of the 
     	//the edit distance operations.
     	ScoreImpl scoreImpl = new ScoreImpl(t_tree, h_tree, alignments);
@@ -577,9 +579,49 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	return fragment;
     	
     }
-    
-    
+ //TODO   
+   private String removePunctuation(String dependencyTree){
+	   	int foundcounter = 0;
+    	String cleaned_tree = "";
+    	Boolean hasChild = false;
+    	String[] lines = dependencyTree.split("\n");
+    	for (int i = 0; i < lines.length; i++) {
+			String line = "";
+    		String[] fields = lines[i].split("\\s");
+    		int tokenId = Integer.parseInt(fields[0]) - foundcounter;
+    		System.out.println(fields[7]);
+    		if(fields[7].equals("punct")){
+    	    	for (int j = 0; j < lines.length; j++){
+    	    		String[] fieldsj = lines[j].split("\\s");
+    	    		if(fieldsj[6].equals(tokenId+"")){
+    	    			hasChild = true;
+    	    		}
+    	    	}
+    	    	if (hasChild){
+    	    		fields[0]=tokenId+"";
 
+        			for (String field:fields){
+        				line+=field+"\t" ;
+        			}
+        			line+="\n";
+    	    	}
+    	    	else foundcounter++; 
+    		}
+    		else {
+    			fields[0]=tokenId+"";
+
+    			for (String field:fields){
+    				line+=field+"\t" ;
+    			}
+    			line+="\n";
+    		}
+    		
+    		cleaned_tree+=line;
+    		
+    	}
+    	return cleaned_tree;
+    }
+    
     /**
      * Given a cas (it contains the T view or the H view) in input it produces a
      * string containing the tree in the CoNLL-X format
