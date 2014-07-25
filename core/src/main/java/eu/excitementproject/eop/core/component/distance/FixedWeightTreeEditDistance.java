@@ -226,16 +226,19 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	    //get the Text
 	    	JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 	    	//get the dependency tree of Text
-	    	String t_tree = removePunctuation(cas2CoNLLX(tView));
+	    	String t_tree = cas2CoNLLX(tView);
 	    	logger.info("\nThe Tree of Text:\n" + t_tree);
+	    	t_tree = removePunctuation(t_tree);
+	    	logger.info("\nThe Cleaned Tree of Text:\n" + t_tree);
 	    	//create the Text fragment
 	    	Fragment t_fragment = getFragment(t_tree);
 	    	//get the Hypothesis
 	    	JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 	    	//the dependency tree of Hypothesis
 	    	String h_tree = cas2CoNLLX(hView);
-	    	//TODO add here the method to remove the stop words
 	    	logger.info("\nThe Tree of Hypothesis:\n" + h_tree);
+	    	h_tree = removePunctuation(h_tree);
+	    	logger.info("\nThe Cleaned Tree of Hypothesis:\n" + h_tree);
 	    	//create the Hypothesis fragment
 	    	Fragment h_fragment = getFragment(h_tree);
             //calculate the distance between T and H by using the matches
@@ -269,16 +272,18 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 		    //get the dependency tree of Text
 		    String t_tree = removePunctuation(cas2CoNLLX(tView));
-		    //TODO add here the method to clean stop words
 		    logger.info("Text:\n" + t_tree);
+		    t_tree = removePunctuation(t_tree);
+		    logger.info("Cleaned text:\n" + t_tree);
 		    //create the Text fragment
 		    Fragment t_fragment = getFragment(t_tree);
 		    //get Hypothesis
 		    JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 		    //the dependency tree of Hypothesis
 		    String h_tree = cas2CoNLLX(hView);
-		    //TODO add here the method to clean stop words
 		    logger.info("Hypothesis:\n" + h_tree);
+		    h_tree = removePunctuation(h_tree);
+		    logger.info("Cleaned hypothesis:\n" + h_tree);
 		    //create the Hypothesis fragment
 		    Fragment h_fragment = getFragment(h_tree);
 		    
@@ -589,7 +594,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			String line = "";
     		String[] fields = lines[i].split("\\s");
     		int tokenId = Integer.parseInt(fields[0]) - foundcounter;
-    		System.out.println(fields[7]);
     		if(fields[7].equals("punct")){
     	    	for (int j = 0; j < lines.length; j++){
     	    		String[] fieldsj = lines[j].split("\\s");
