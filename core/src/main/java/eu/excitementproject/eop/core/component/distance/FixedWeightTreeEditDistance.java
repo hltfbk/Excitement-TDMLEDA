@@ -227,6 +227,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 	    	//get the dependency tree of Text
 	    	String t_tree = cas2CoNLLX(tView);
+	    	//TODO
 	    	logger.info("\nThe Tree of Text:\n" + t_tree);
 	    	t_tree = removePunctuation(t_tree);
 	    	logger.info("\nThe Cleaned Tree of Text:\n" + t_tree);
@@ -273,6 +274,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    //get the dependency tree of Text
 		    String t_tree = removePunctuation(cas2CoNLLX(tView));
 		    logger.info("Text:\n" + t_tree);
+		    //TODO
 		    t_tree = removePunctuation(t_tree);
 		    logger.info("Cleaned text:\n" + t_tree);
 		    //create the Text fragment
@@ -586,44 +588,55 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     }
  //TODO   
    private String removePunctuation(String dependencyTree){
-	   	int foundcounter = 0;
+	   	
     	String cleaned_tree = "";
     	Boolean hasChild = false;
     	String[] lines = dependencyTree.split("\n");
+    	
     	for (int i = 0; i < lines.length; i++) {
-			String line = "";
-    		String[] fields = lines[i].split("\\s");
-    		int tokenId = Integer.parseInt(fields[0]) - foundcounter;
-    		if(fields[7].equals("punct")){
-    	    	for (int j = 0; j < lines.length; j++){
-    	    		String[] fieldsj = lines[j].split("\\s");
-    	    		if(fieldsj[6].equals(tokenId+"")){
-    	    			hasChild = true;
-    	    		}
-    	    	}
-    	    	if (hasChild){
-    	    		fields[0]=tokenId+"";
-
-        			for (String field:fields){
-        				line+=field+"\t" ;
-        			}
-        			line+="\n";
-    	    	}
-    	    	else foundcounter++; 
-    		}
-    		else {
-    			fields[0]=tokenId+"";
-
-    			for (String field:fields){
-    				line+=field+"\t" ;
-    			}
-    			line+="\n";
-    		}
-    		
-    		cleaned_tree+=line;
-    		
+    		if(!lines[i].isEmpty()){
+	    		String[] fields = lines[i].split("\\s");
+	    		int tokenId = Integer.parseInt(fields[0]);
+	    		if(fields[7].equals("punct")){
+	    			//checking for children
+	    	    	for (int j = 0; j < lines.length; j++){
+		    	    		if(!lines[j].isEmpty()){
+		    	    		String[] fieldsj = lines[j].split("\\s");
+		    	    		if(fieldsj[6].equals(tokenId+"")){
+		    	    			hasChild = true;
+		    	    		}
+		    	    	}
+	    	    	}
+	    	    	//update stage
+	    	    	if (!hasChild) {
+	    	    		lines[i]="";
+	    	    		for (int j = 0; j < lines.length; j++){
+	    	    			if(!lines[j].isEmpty()){
+		    	    			String[] fieldsj = lines[j].split("\\s");
+		    	    			//updating the IDs for the deletion
+		    	    			if(Integer.parseInt(fieldsj[0]) >= tokenId){
+		    	    				fieldsj[0] = (Integer.parseInt(fieldsj[0])-1)+"";
+		    	    			}
+		    	    			//updating the heads. I assume that the root cannot be a punctuation mark
+		    	    			if(!fieldsj[6].equals("_") && Integer.parseInt(fieldsj[6]) > tokenId){
+		    	    				fieldsj[6] = (Integer.parseInt(fieldsj[6])-1)+"";
+		    	    			}
+		    	    			String line = "";
+		    	    			for (String field:fieldsj){
+		    	    				line+= field + "\t"; 
+		    	    			}
+		    	    			lines[j]=line;
+		    	    		}
+	    	    		}
+	    	    	}
+	    		}
+	    	}
     	}
-    	return cleaned_tree;
+    	for (int i = 0; i < lines.length; i++){
+    		if(!lines[i].isEmpty())
+    			cleaned_tree+=lines[i]+"\n";
+    	}
+    	return cleaned_tree+"\n";
     }
     
     /**
