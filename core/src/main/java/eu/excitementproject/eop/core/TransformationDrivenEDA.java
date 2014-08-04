@@ -1,5 +1,6 @@
 package eu.excitementproject.eop.core;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,9 +10,10 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -19,9 +21,6 @@ import java.lang.reflect.Constructor;
 import org.apache.uima.jcas.JCas;
 import org.uimafit.util.JCasUtil;
 
-import weka.attributeSelection.AttributeEvaluator;
-import weka.attributeSelection.InfoGainAttributeEval;
-import weka.attributeSelection.Ranker;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Attribute;
@@ -29,10 +28,6 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
-import weka.core.SerializationHelper;
-import weka.filters.Filter;
-import weka.filters.supervised.attribute.AttributeSelection;
-import weka.filters.unsupervised.attribute.Normalize;
 
 import eu.excitementproject.eop.common.DecisionLabel;
 import eu.excitementproject.eop.common.EDABasic;
@@ -51,22 +46,26 @@ import eu.excitementproject.eop.lap.dkpro.MaltParserEN;
 
 
 /**
- * The <code>EditDistanceEDA</code> class implements the <code>EDABasic</code> interface.
+ * The <code>TransformationDrivenEDA</code> class implements the <code>EDABasic</code> interface.
  * Given a certain configuration, it can be trained over a specific data set in order to optimize its
- * performance. In the training phase this class produces a distance model for the data set, which
- * includes a distance threshold that best separates the positive and negative examples in the training data.
- * During the test phase it applies the calculated threshold, so that pairs resulting in a distance below the
- * threshold are classified as ENTAILMENT, while pairs above the threshold are classified as NONENTAILMENT.
- * <code>EditDistanceEDA</code> uses <code>FixedWeightEditDistance</code> for calculating edit distance
- * between each pair of T and H.
+ * performance. 
  * 
- * @author Roberto Zanoli
+ * This EDA is based on modelling the Entailment Relations (i.e., Entailment, Not-Entailment) as a 
+ * classification problem. First texts (T) are mapped into hypothesis (H) by sequences of editing operations
+ * (i.e., insertion, deletion, substitution of text portions) needed to transform T into H, where each edit 
+ * operation has a cost associated with it. Then, and this is different from the algorithms which use these 
+ * operations to calculate a threshold value that best separates the Entailment Relations from the Not-Entailment
+ * ones, the proposed algorithm uses the calculated operations as a feature set to feed a Supervised Learning
+ * Classifier System being able to classify the relations between T and H. 
+ * 
+ * @author roberto zanoli
+ * @author silvia colombo
+ * 
+ * @since August 2014
  * 
  */
 public class TransformationDrivenEDA<T extends TEDecision>
 		implements EDABasic<EditDistanceTEDecision> {
-	
-	
 	
 	/**
 	 * 
@@ -82,7 +81,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	/**
 	 * the logger
 	 */
-	static Logger logger = 
+	private final static Logger logger = 
 			Logger.getLogger(TransformationDrivenEDA.class.getName());
 
 	/**
@@ -91,15 +90,42 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	private String trainDIR;
 	
 	/**
-	 * the tmp directory where to put temporary data
-	 */
-	private String tmpDIR;
-
-	/**
 	 * the test data directory
 	 */
 	private String testDIR;
-    
+	
+	/**
+	 * save the training data set into arff format so that one
+	 * can do experiments by using the WEKA Explorer.
+	 */
+	private String saveTrainingDatasetInotArffFormat;
+	
+	/**
+	 * if true the transformations about matches are considered as features
+	 */
+	private boolean match;
+	
+	/**
+	 * if true the transformations about insertions are considered as features
+	 */
+	private boolean insertion;
+	
+	/**
+	 * if true the transformations about deletions are considered as features
+	 */
+	private boolean deletion;
+	
+	/**
+	 * if true the transformations about replacement are considered as features
+	 */
+	private boolean replacement;
+	
+	/**
+	 * verbosity level
+	 */
+	private String verbosityLevel;
+	
+	
 	/**
 	 * get the component used by the EDA
 	 * 
@@ -112,7 +138,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	}
 	
 	/**
-	 * get the type of component (i.e. EditDistanceEDA)
+	 * get the type of component
 	 * 
 	 * @return the type of component
 	 */
@@ -134,33 +160,12 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	}
 	
 	/**
-	 * get the tmp directory
-	 * 
-	 * @return the tmp directory
-	 */
-	public String getTmpDIR() {
-		
-		return this.tmpDIR;
-		
-	}
-	
-	/**
 	 * set the training data directory
 	 * 
 	 */
 	public void setTrainDIR(String trainDIR) {
 		
 		this.trainDIR = trainDIR;
-		
-	}
-	
-	/**
-	 * set the tmp directory
-	 * 
-	 */
-	public void setTmpDIR(String tmpDIR) {
-		
-		this.tmpDIR = tmpDIR;
 		
 	}
 	
@@ -200,13 +205,13 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	private Classifier classifier;
 	
 	/** 
-	 * The max number of features to be used by the classifier
-	 * for training and test. It is used for feature selection.
+	 * The classifier model to be trained during the training phase
+	 * and tested during the testing phase.
 	 */
-	private int maxNumberOfFeatures;
+	private String classifierModel;
 	
 	/** 
-	 * The feature set used for training and test
+	 * The feature set used for training and testing
 	 */
 	private Map<String,Integer> featuresList;
 	
@@ -223,7 +228,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
     
     /** 
      * The classifier evaluation; it contains methods for getting
-     * a number of measures like precision, recall and F1measure.
+     * a number of measures like precision, recall and F1 measure.
      */
 	private Evaluation evaluation;
 	
@@ -237,30 +242,19 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	 * training data set, e.g. cross validation 
 	 * */
 	private boolean crossValidation;
-
-	/** 
-	 * Enable feature selection
-	 * */
-	private boolean featureSelection;
-	
 	
 	/**
 	 * Construct an TransformationDriven EDA
 	 */
 	public TransformationDrivenEDA() {
     	
-		logger.info("creating an instance of TransformationDrivenEDA ...");
-		
 		this.component = null;
 		this.classifier = null;
 		this.crossValidation = false;
-		this.featureSelection = false;
 		this.evaluation = null;
         this.trainDIR = null; //"/tmp/training/";
         this.testDIR = null; //"/tmp/test/";
-        this.tmpDIR = null; //"/tmp/temporaryfiles/";
-        
-        logger.info("done.");
+        this.saveTrainingDatasetInotArffFormat = null;
         
     }
 
@@ -268,8 +262,6 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	@Override
 	public void initialize(CommonConfig config) 
 			throws ConfigurationException, EDAException, ComponentException {
-		
-		logger.info("initialize ...");
 		
 		try {
         	
@@ -280,51 +272,84 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//for getting the EDA configuration form the configuration file.
 			NameValueTable nameValueTable = config.getSection(this.getType());
 			
+			//setting the logger verbosity level
+			if (this.verbosityLevel == null) {
+				this.verbosityLevel = nameValueTable.getString("verbosity-level");
+				logger.setUseParentHandlers(false);
+				ConsoleHandler consoleHandler = new ConsoleHandler();
+				consoleHandler.setLevel(Level.parse(this.verbosityLevel));
+				logger.addHandler(consoleHandler);
+				logger.setLevel(Level.parse(this.verbosityLevel));
+			}
+			
+			logger.info("initialize ...");
+		
 			//setting the training directory
 			if (this.trainDIR == null)
 				this.trainDIR = nameValueTable.getString("trainDir");
-			logger.info("training directory:" + this.trainDIR);
+			logger.fine("training directory:" + this.trainDIR);
 			
 			//setting the test directory
 			if (this.testDIR == null)
 				this.testDIR = nameValueTable.getString("testDir");
-			logger.info("testing directory:" + this.testDIR);
-			
-			//setting the test directory
-			if (this.tmpDIR == null)
-				this.tmpDIR = nameValueTable.getString("tmpDir");
-			logger.info("temporary directory:" + this.tmpDIR);
+			logger.fine("testing directory:" + this.testDIR);
 			
 			//evaluation on the training data set
 			if (this.crossValidation == false)
 				this.crossValidation = Boolean.parseBoolean(nameValueTable.getString("cross-validation"));
-			logger.info("cross-validation:" + this.crossValidation);
+			logger.fine("cross-validation:" + this.crossValidation);
 			
-			//enable feature selection
-			if (this.featureSelection == false)
-				this.featureSelection = Boolean.parseBoolean(nameValueTable.getString("feature-selection"));
-			logger.info("feature-selection:" + this.featureSelection);
-			if (this.featureSelection == true) {
-				this.maxNumberOfFeatures = Integer.parseInt(nameValueTable.getString("max-number-of-features"));
-				logger.info("max number of features to be selected:" + this.maxNumberOfFeatures);
-			}
+			//evaluation on the training data set
+			if (this.saveTrainingDatasetInotArffFormat == null)
+				this.saveTrainingDatasetInotArffFormat = nameValueTable.getString("save-arff-format");
+			if (this.saveTrainingDatasetInotArffFormat != null)
+				logger.fine("save the data set into arff format in:" + this.saveTrainingDatasetInotArffFormat);
+			
+			//decide which transformations (i.e. match, insertion, deletion, substitution) have to be
+			//considered as features.
+			String enambledTransforations = nameValueTable.getString("transformations");
+			if (enambledTransforations.indexOf(Transformation.MATCH) != -1)
+				this.match = true;
+			if (enambledTransforations.indexOf(Transformation.DELETION) != -1)
+				this.deletion = true;
+			if (enambledTransforations.indexOf(Transformation.INSERTION) != -1)
+				this.insertion = true;
+			if (enambledTransforations.indexOf(Transformation.REPLACE) != -1)
+				this.replacement = true;
 			
 			//classifier initialization
 			String classifierName = nameValueTable.getString("classifier");
-			//classifierName = "weka.classifiers.bayes.NaiveBayes";
+			//classifier parameters
+			String[] classifierParameters = nameValueTable.getString("classifier-parameters").split(" ");
+			
 			if (this.classifier == null) {
 				
 				try {
+					
 					Class<?> classifierClass = Class.forName(classifierName);
-					logger.info("classifier:" + classifierClass.getCanonicalName());
+					logger.fine("classifier:" + classifierClass.getCanonicalName());
 					Constructor<?> classifierClassConstructor = classifierClass.getConstructor();
 					this.classifier = (Classifier) classifierClassConstructor.newInstance();
+					if (classifierParameters != null && !classifierParameters.equals(""))
+						this.classifier.setOptions(classifierParameters);
+					String[] options = this.classifier.getOptions();
+					StringBuffer optionsString = new StringBuffer(); 
+					for (int i = 0; i < options.length; i++) {
+						optionsString.append(options[i]);
+						optionsString.append("");
+					}
+					
+					logger.fine("classifier options:" + optionsString.toString());
+					
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new EDAException(e.getMessage());
 				}
 			
 			}
+			
+			//the classifier model trained during the training phase and to be used during the test phase. 
+			classifierModel = nameValueTable.getString("classifier-model");
 			
 			//component initialization
 			String componentName = nameValueTable.getString("components");
@@ -334,34 +359,35 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				try {
 					
 					Class<?> componentClass = Class.forName(componentName);
-					logger.info("Using:" + componentClass.getCanonicalName());
+					logger.fine("using:" + componentClass.getCanonicalName());
 					Constructor<?> componentClassConstructor = componentClass.getConstructor(CommonConfig.class);
 					this.component = (FixedWeightTreeEditDistance) componentClassConstructor.newInstance(config);
 					
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new ComponentException(e.getMessage());
+					
 				}
 				
 			}
+			
+			logger.info("done.");
 
 		} catch (ConfigurationException e) {
+			
 			throw e;
+			
 		} catch (Exception e) {
-			e.printStackTrace();
+            
 			throw new EDAException(e.getMessage());
 		}
 		
-		logger.info("done.");
-	
 	}
 	
 	
 	@Override
 	public EditDistanceTEDecision process(JCas jcas) 
 			throws EDAException, ComponentException {
-		
-		logger.info("process ...");
 		
 		//the predicted class
 		String annotationClass = null;
@@ -379,7 +405,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		    
 			//get the T/H pair
 			pair = JCasUtil.selectSingle(jcas, Pair.class);
-			logger.info("processing pair: " + pair.getPairID());
+			logger.fine("processing pair: " + pair.getPairID());
 			
 			/**
 			 * this records the gold standard answer for this pair. If the pair 
@@ -387,40 +413,21 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			 * it is a null value, the pair represents a problem that is yet to be answered.
 			*/
 			String goldAnswer = pair.getGoldAnswer(); //get gold annotation
-			logger.info("annotation class label: " + goldAnswer);
+			logger.fine("annotation class label: " + goldAnswer);
 			
 			//get the distance between T and H
 			double distance = component.calculation(jcas).getDistance();
-			
-			System.err.println("===================== distance:" + distance);
+			logger.fine("distance:" + distance);
 			
 			//get the transformations needed to transform T into H
 			List<Transformation> transformations = component.getTransformations();
-			
-			/*
-			String tr = null;
-			double random = Math.random();
-			if (random <= 0.5)
-				tr = "tr5 tr6 tr7 tr8";
-			else 
-				tr = "tr1 tr2 tr3 tr4";
-			
-			//creating example_i
-			HashSet<String> example_i = new HashSet<String>();
-			String[] features = tr.split("\\s");
-			//only consider the features that have been seen in the training set 
-			for (int i = 0; i < features.length; i++) {
-				if (featuresList.containsKey(features[i]))
-					example_i.add(features[i]);
-			}
-			*/
 			
 			HashSet<String> example_i = new HashSet<String>();
 			Iterator<Transformation> iteratorTransformation = transformations.iterator();
 			while(iteratorTransformation.hasNext()) {
 				Transformation transformation_i = iteratorTransformation.next();
-				System.out.println(transformation_i);
-				String transformation_i_name = transformation_i.print(true, false, true,true);
+				logger.finer("transformation:" + transformation_i);
+				String transformation_i_name = transformation_i.print(this.replacement, this.match, this.deletion, this.insertion);
 				if (transformation_i_name == null)
 					continue;
 				if (featuresList.containsKey(transformation_i_name))
@@ -446,10 +453,6 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//fill the data set
 			fillDataSet(examples, annotation);
 					
-			//logger.info("number of features:" + featureList.size());
-			//logger.info("number of examples:" + examples.size() );
-			logger.info("input data set:\n" + inputDataset);
-			
 			//the classifier returns with a confidence level for each of the possible
 			//classes; following we look for the most probable classes and report
 			//the confidence assigned to this class by the classifier
@@ -464,7 +467,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//get the class label (e.g. Entailment)
 			annotationClass = inputDataset.attribute("class").value(index);
 			
-			logger.info("annotation class:" + annotationClass);
+			logger.fine("annotation class:" + annotationClass);
 		
 		} catch (Exception e) {
 			
@@ -493,7 +496,6 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		this.evaluation = null;
         this.trainDIR = null;
         this.testDIR = null;
-        this.tmpDIR = null;
         
         logger.info("done.");
 		
@@ -529,67 +531,52 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//data structure for storing the examples to be used for training
             List<HashSet<String>> examples = new ArrayList<HashSet<String>>();
             		
+            File[] files = f.listFiles();
+            //sort files on the bases of their id
+            Arrays.sort(files);
+            
+            //the number of read files
+            //int fileCounter = 0;
+            
 			//reading the training data set
-			for (File xmi : f.listFiles()) {
-					
+			for (File xmi : files) {
 				if (!xmi.getName().endsWith(".xmi")) {
 					continue;
 				}
+				
+				//fileCounter++;
 				
 				// The annotated pair is added into the CAS.
 				JCas jcas = PlatformCASProber.probeXmi(xmi, null);
 				
 				//the T/H pair
 				Pair pair = JCasUtil.selectSingle(jcas, Pair.class);
-				//logger.fine("processing pair: " + pair.getPairID());
+				logger.finer("processing pair: " + pair.getPairID());
 				
 				//the pair annotation
 				String goldAnswer = pair.getGoldAnswer(); //get gold annotation
-				//logger.fine("gold annotation: " + goldAnswer);
-				
-				//get the distance between T and H
-				double distance = component.calculation(jcas).getDistance();
+				logger.finer("gold annotation: " + goldAnswer);
 				
 				//get the transformations to transform T into H
 				List<Transformation> transformations = component.getTransformations();
-				
-				/*
-				String tr = null;
-					
-				if (goldAnswer.equals("ENTAILMENT")) {
-					tr = "tr5 tr6 tr7 tr8";
-				}
-				else {
-					tr = "tr1 tr2 tr3 tr4";
-				}
-					
-				//creating example_i
-				HashSet<String> example_i = new HashSet<String>();
-				String[] features = tr.split("\\s");
-				//features indexing
-				for (int i = 0; i < features.length; i++) {
-					//creating the feature index starting from 0
-					if (!featuresList.containsKey(features[i])) {
-						featuresList.put(features[i], featuresList.size());
-					}
-					example_i.add(features[i]);
-				}
-				//creating the classes index starting from 0
-				if (!this.classesList.contains(goldAnswer))
-					classesList.addElement(goldAnswer);
-				*/
 				
 				HashSet<String> example_i = new HashSet<String>();
 				Iterator<Transformation> iteratorTransformation = transformations.iterator();
 				while(iteratorTransformation.hasNext()) {
 					Transformation transformation_i = iteratorTransformation.next();
-					String transformation_i_name = transformation_i.print(true, false, true,true);
+					
+					String transformation_i_name = transformation_i.print(this.replacement, this.match, this.deletion, this.insertion);
+					
+					logger.finer("transformation_i:" + transformation_i_name);
+					
 					if (transformation_i_name == null)
 						continue;
+					
 					if (!featuresList.containsKey(transformation_i_name))
 						featuresList.put(transformation_i_name, featuresList.size());
 					example_i.add(transformation_i_name);
 				}
+				
 				//creating the classes index starting from 0
 				if (!this.classesList.contains(goldAnswer))
 					classesList.addElement(goldAnswer);
@@ -609,15 +596,13 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			fillDataSet(examples, annotation);
 			
 			logger.info("number of examples:" + examples.size() );
-			logger.info("number of features:" + featuresList.size());
-			logger.info("input data set:\n" + inputDataset);
+			logger.info("number of features:" + (featuresList.size()-1));//-1 due to the fake_attribute
+			logger.info("number of classes:" + (classesList.size()-1));//-1 due to the fake class
+			//logger.info("input data set:\n" + inputDataset);//the data set on arff format
 			
-			//enable feature selection
-			if (this.featureSelection == true) {
-				selectFeatures();
-				//normalize();
-				logger.info("input data set after feature selection:\n" + inputDataset);
-			}
+			//save the data set into arff format
+			if (this.saveTrainingDatasetInotArffFormat != null)
+				this.saveDataset();
 			
 			//save the list of the features with their index into a file to be used
 			//during the test phase (see the process method)
@@ -632,11 +617,9 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			
             //cross-validation
             if (this.crossValidation == true) {
-            	evaluation = new Evaluation(inputDataset);
-            	evaluation.crossValidateModel(classifier, inputDataset, numFolds, new Random(1));
-            	logger.info("evaluation summary:\n" + evaluation.toSummaryString());
+            	evaluatModel();
             }
-            
+           
 		} catch (Exception e) {
 			
 			e.printStackTrace();
@@ -648,13 +631,36 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		
 	}
 	
+	
+	/**
+	 * Evaluates the created model
+	 * 
+	 * @throws Exception
+	 */
+	private void evaluatModel() throws Exception {
+		
+		try {
+		
+			evaluation = new Evaluation(inputDataset);
+	    	evaluation.crossValidateModel(classifier, inputDataset, numFolds, new Random(1));
+	    	logger.info("evaluation summary:\n" + evaluation.toSummaryString());
+	    	logger.info("detailed accuracy:\n" + evaluation.toClassDetailsString());
+		
+		} catch (Exception e) {
+		
+			throw new EDAException(e.getMessage());
+		
+		} 
+    	
+	}
+	
 
 	/*
-	 * Define the data set format
+	 * Define the data set structure
 	 */
 	private void initDataSet() throws Exception {
 	
-		logger.info("data set initialization ...");
+		logger.fine("data set initialization ...");
 		
 		try {
 		
@@ -667,6 +673,10 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			
 			for (Entry<String, Integer> entry : entriesSortedByValues(featuresList)) {
 		        String featureName = entry.getKey();
+		        
+		        if (featureName.indexOf("distance:") != -1)
+		        	featureName = featureName.split(":")[0];
+		        
 				//each of the extracted features is a new attribute
 				Attribute attribute_i = new Attribute(featureName);
 				//adding the attribute_i into the list of the attributes
@@ -692,22 +702,23 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			//logger.info("data set:\n" + inputDataset);
 		
 		} catch (Exception e) {
-			
+			e.printStackTrace();
 			throw new Exception("Data Set initialization error:" + e.getMessage());
 			
 		} 
 		
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
-	/*
-	 * Adding data into the data set
+	
+	/**
+	 * Adding data into the defined data set
 	 */
 	private void fillDataSet(List<HashSet<String>> examples, List<String> annotation) 
 			throws Exception {
 		
-		logger.info("creating data set ...");
+		logger.fine("creating data set ...");
 		
 		try {
 		
@@ -722,19 +733,34 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				//its values are set to 0 
 				Instance instance_i = new SparseInstance(1.0, initValues);//1.0 is the instance weight
 				Iterator<String> iterator_j = example_i.iterator();
+				
 				while(iterator_j.hasNext()) {
+					
 					String feature_j = iterator_j.next();
-					int featureIndex;
-					if (featuresList.containsKey(feature_j)) {
+					//logger.finer("feature j:" + feature_j);
+					
+					if (feature_j.indexOf("distance:") != -1) {
+						String new_feature_j = feature_j.split(":")[0];
+						//System.err.println(feature_j);
+						int featureIndex = featuresList.get(new_feature_j);
+						//System.err.println(feature_j + "---");
+						double weight = Double.parseDouble(feature_j.split(":")[1]);
+						//System.err.println(weight);
+						instance_i.setValue(featureIndex, weight);//1.0 is the feature weight
+					}
+					
+					else if (featuresList.containsKey(feature_j)) {
 						//System.err.println(feature_j + "\t" +  featuresList.get(feature_j));
-						featureIndex = featuresList.get(feature_j);
+						int featureIndex = featuresList.get(feature_j);
 						//only the features with weight different from 0 are set
 						instance_i.setValue(featureIndex, 1.0);//1.0 is the feature weight
 					}
+					
 				}
+				
 				if (instance_i.numValues() == 0) {
 					int featureIndex;
-					featureIndex = featuresList.get("fake");
+					featureIndex = featuresList.get("fake_attribute");
 					instance_i.setValue(featureIndex, 1.0);//1.0 is the feature weight
 				}
 				//the last value is that of the annotation class
@@ -750,42 +776,77 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			
 		} 
 		
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
 	
+	/**
+	 * Initialize the classes structure
+	 */
 	private void initClassesList() {
 		
-		logger.info("Initialize classes list ...");
+		logger.fine("initialize classes list ...");
 		
 		this.classesList = new FastVector();
-		//the 'null' value has been added to solve the issue saving SparseInstance objects from 
-		//datasets that have string attribute; see WekaManual-3-6-10-1.pdf
-		classesList.addElement("fake");
+		classesList.addElement("fake_class");
 		
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
+	
+	/**
+	 * Initialize the features structure
+	 */
 	private void initFeaturesList() {
 		
-		logger.info("Initialize features list ...");
+		logger.fine("initialize features list ...");
 		
 		this.featuresList = new HashMap<String,Integer>();
-		this.featuresList.put("fake", 0);
+		this.featuresList.put("fake_attribute", 0);
+		//this.featuresList.put("distance", 1);
 		
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
 	
-	/*
-	 * Save the feature index to be used for processing
+	/**
+	 * Save the data set in arff format to be used with the WEKA Explorer
+	 */
+	private void saveDataset() throws Exception {
+		
+		logger.fine("saving data set into arff format ...");
+		
+		try{
+		
+			BufferedWriter writer = null;
+	    		writer = new BufferedWriter(new OutputStreamWriter(
+	                  new FileOutputStream(this.saveTrainingDatasetInotArffFormat, false), "UTF-8"));
+
+	    	PrintWriter printout = new PrintWriter(writer);
+	    	printout.print(this.inputDataset);
+	    	printout.close();
+	    	writer.close();
+		    	
+	    } catch (Exception e) {
+	    	
+	    	throw new Exception("Saving data set error:" + e.getMessage());
+	    	
+	    }
+		
+	    logger.fine("done.");
+	    
+	}
+	
+	
+	/**
+	 * Save the feature index to be used during the test phase
 	 */
 	private void saveFeaturesList() throws Exception {
 		
-		logger.info("saving features list ...");
+		logger.fine("saving features list ...");
 		
 	    int attributeNumber = inputDataset.numAttributes();
 	    initFeaturesList();
@@ -809,7 +870,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	    	}
 	    	
 	    	writer = new BufferedWriter(new OutputStreamWriter(
-	                  new FileOutputStream(tmpDIR + "/" + "feature_list.txt", false), "UTF-8"));
+	                  new FileOutputStream(classifierModel + ".feature_list.txt", false), "UTF-8"));
 
 	    	PrintWriter printout = new PrintWriter(writer);
 	    	printout.print(stringBuffer);
@@ -823,20 +884,20 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	    	
 	    }
 		
-	    logger.info("done.");
+	    logger.fine("done.");
 	    
 	}
 	
-	/*
-	 * Get the feature index to be used for processing
+	/**
+	 * Get the feature index to be used during the test phase
 	 */
 	private void getFeaturesList() throws Exception {
 		
-		logger.info("getting features list ...");
+		logger.fine("getting features list ...");
 		
 		try {
 			
-			File fileDir = new File(tmpDIR + "/" + "feature_list.txt");
+			File fileDir = new File(classifierModel + ".feature_list.txt");
 	 
 			BufferedReader in = new BufferedReader(
 			   new InputStreamReader(
@@ -850,7 +911,9 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			    int index = Integer.parseInt(splitLine[1]);
 			    featuresList.put(feature_i, index);
 			}
-	                in.close();
+	        
+			in.close();
+	                
 		} catch (UnsupportedEncodingException e) {
 				throw new Exception("Getting features list Unsupported Encoding Exception:" + e.getMessage());
 		} catch (IOException e) {
@@ -859,17 +922,17 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				throw new Exception("Getting features list error:" + e.getMessage());
 		}
 		
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
 	
 	/**
-	 * Save the feature index to be used for processing
+	 * Save the classes index to be used during the test phase
 	 */
 	private void saveClasses() throws Exception {
 		
-		logger.info("saving the classes list ...");
+		logger.fine("saving the classes list ...");
 		
 		BufferedWriter writer = null;
 	    StringBuffer stringBuffer = new StringBuffer();
@@ -887,7 +950,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	    	}
 	    	
 	    	writer = new BufferedWriter(new OutputStreamWriter(
-	                  new FileOutputStream(tmpDIR + "/" + "classes.txt", false), "UTF-8"));
+	                  new FileOutputStream(classifierModel + ".classes.txt", false), "UTF-8"));
 
 	    	PrintWriter printout = new PrintWriter(writer);
 	    	printout.print(stringBuffer);
@@ -897,25 +960,25 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		    	
 	    } catch (Exception e) {
 	    	
-	    	throw new Exception("Saving the classes list error:" + e.getMessage());
+	    	throw new Exception("Saving the classes error:" + e.getMessage());
 	    	
 	    }
 	    
-	    logger.info("done.");
+	    logger.fine("done.");
 		
 	}
 	
 	
 	/**
-	 * Get the feature index to be used for processing
+	 * Get the classes index to be used during the test phase
 	 */
 	private void getClasses() throws Exception {
 		
-		logger.info("getting the classes list ...");
+		logger.fine("getting the classes list ...");
 		
 		try {
 			
-			File fileDir = new File(tmpDIR + "/" + "classes.txt");
+			File fileDir = new File(classifierModel + ".classes.txt");
 	 
 			BufferedReader in = new BufferedReader(
 			   new InputStreamReader(
@@ -929,7 +992,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			    int index = Integer.parseInt(splitLine[1]);
 			    classesList.setElementAt(classLabel_i, index);
 			}
-	                in.close();
+	        
+			in.close();
 		    
 		} catch (UnsupportedEncodingException e) {
 			throw new Exception("Unsupported Encoding Exception:" + e.getMessage());
@@ -939,7 +1003,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			throw new Exception("Error:" + e.getMessage());
 		}
 		 
-		logger.info("done.");
+		logger.fine("done.");
 		
 	}
 	
@@ -949,22 +1013,22 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	 */
 	private void trainClassifier() throws Exception {
 		
-		logger.info("training the classifier ...");
+		logger.fine("training the classifier ...");
 		
         try {
             
         	//building the classifier
             classifier.buildClassifier(inputDataset);
             //storing the trained classifier to a file for future use
-            weka.core.SerializationHelper.write(tmpDIR + "/" + "NaiveBayes.model", classifier);
+            weka.core.SerializationHelper.write(classifierModel, classifier);
             
         } catch (Exception ex) {
-        	
+        	ex.printStackTrace();
         	throw new Exception(ex.getMessage());
         	
         }
         
-        logger.info("done.");
+        logger.fine("done.");
         
     }
 	
@@ -980,7 +1044,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
         try {
         	
             //Classifier deserialization
-            classifier = (Classifier) weka.core.SerializationHelper.read(tmpDIR + "/" + "NaiveBayes.model");
+            classifier = (Classifier) weka.core.SerializationHelper.read(classifierModel);
             
             for (int i = 0; i < inputDataset.numInstances(); i++) {
                 
@@ -1047,54 +1111,6 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		
 	}
 	
-	
-	public void normalize() throws Exception {
-		
-		//Normalize training data
-	    Normalize norm = new Normalize();
-	    norm.setInputFormat(inputDataset);
-	    Instances newData = Filter.useFilter(inputDataset, norm);
-	    inputDataset = newData;
-	    
-	}
-	
-	
-	/**
-	 * 
-	 * selects a given number of features by info gain eval
-	 * @param number the number of features to select
-	 * @throws Exception
-	 */
-	public void selectFeatures() throws Exception {
-		
-		logger.info("feature selection ...");
-		
-		try {
-		
-		    AttributeSelection filter = new AttributeSelection();
-		    InfoGainAttributeEval eval = new InfoGainAttributeEval();
-		    Ranker search = new Ranker();
-		    search.setNumToSelect(this.maxNumberOfFeatures);
-		    filter.setEvaluator(eval);
-		    filter.setSearch(search);
-		    filter.setInputFormat(inputDataset);
-		    Instances newData = Filter.useFilter(inputDataset, filter);
-		    int numberOfremovedFeatures = inputDataset.numAttributes() - newData.numAttributes();
-		    logger.info("removed features:" + numberOfremovedFeatures);
-		    
-		    inputDataset= newData;
-		    
-		} catch (Exception ex) {
-    	
-			throw new Exception(ex.getMessage());
-        
-		}
-	    
-		logger.info("done.");
-		
-	}
-	
-	
 	static <K,V extends Comparable<? super V>> SortedSet<Map.Entry<K,V>> entriesSortedByValues(Map<K,V> map) {
         SortedSet<Map.Entry<K,V>> sortedEntries = new TreeSet<Map.Entry<K,V>>(
             new Comparator<Map.Entry<K,V>>() {
@@ -1112,10 +1128,12 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	
 	public static void main(String args[]) {
 		
-		TransformationDrivenEDA tdEDA = new TransformationDrivenEDA();
+		TransformationDrivenEDA<EditDistanceTEDecision> tdEDA;
 		
 		try {
 		
+			tdEDA = new TransformationDrivenEDA<EditDistanceTEDecision>();
+			
 			File configFile = new File("./src/main/resources/configuration-file/TransformationDrivenEDA_EN.xml");
 			
 			CommonConfig config = new ImplCommonConfig(configFile);
@@ -1124,24 +1142,25 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			LAPAccess lap = new MaltParserEN();
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
-			File input = new File("/tmp/example.xml");
-			System.out.println("EXAMPLESXML");// this only holds the first 3 of them.. generate 3 XMIs (first 3 of t.xml) 
-			//File input = new File("./src/test/resources/t.xml");  // this is full, and will generate 800 XMIs (serialized CASes)
-			File outputDir = new File("/tmp/training/"); 
+
+			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
+			
+			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			try {
 				System.out.println(input);
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
 			{
 				System.err.println(e.getMessage()); 
-				System.exit(0);
 			}
 			
 			tdEDA.startTraining(config);
-
-			//System.exit(0);
 			
-			File f = new File("/tmp/training/");
+			tdEDA.shutdown();
+			
+			tdEDA.initialize(config);
+			
+			File f = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			
 			//build up the dataset from training data
 			for (File xmi : f.listFiles()) {
@@ -1153,7 +1172,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				// The annotated pair is added into the CAS.
 				JCas jcas = PlatformCASProber.probeXmi(xmi, null);
 				EditDistanceTEDecision edtedecision = tdEDA.process(jcas);
-				System.out.println(edtedecision.getPairID() + "\t" + 
+				System.err.println(edtedecision.getPairID() + "\t" + 
 						edtedecision.getDecision() + " " + 
 						edtedecision.getConfidence());
 				
@@ -1164,6 +1183,11 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		}
 		
 	}
+	
+	/*
+	 * awk 'BEGIN{counter = 0; FS="\t";} {pair_ID = $1; sentence_A=$2; sentence_B=$3; relatedness_score=$4; entailment_judgment=$5; if (entailment_judgment == "NEUTRAL") entailment_judgment = "UNKNOWN"; if (counter == 0) {printf("%s\n%s\n", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<entailment-corpus lang=\"EN\">"); counter = counter + 1;} else{printf("<pair id=\"%s\" entailment=\"%s\" task=\"IR\">\n<t>%s</t>\n<h>%s</h>\n</pair>\n", pair_ID, entailment_judgment, sentence_A, sentence_B);}} END{printf("%s\n", "</entailment-corpus>");}' SICK_train.txt > SICK_train.xml
+     *
+	 */
 	
 	
 }
