@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+		<section name="GeneralParameters">
+			<property name="maxPhraseLength">1</property>
+			<property name="gateLemmatizerFileUrl">src/test/resources/model/GATE-3.1/plugins/Tools/resources/morph/default.rul</property>
+		</section>
+		
+        <section name="LexicalResources">
+        
+            <!-- WordNet -->
+			<property name="wordnet">eu.excitementproject.eop.core.component.lexicalknowledge.wordnet.WordnetLexicalResource</property>
+			
+	   </section>
+	   
+        
+        <!-- WordNet configuration parameters -->
+        <section name="wordnet">
+        	<property name = "useLemma">true</property>
+        	<property name = "version">3.0</property>
+			<property name = "wordnet-dir">src/test/resources/data/WordNet/3.0/dict.wn.orig</property>
+			<property name = "useFirstSenseOnlyLeft">false</property>
+			<property name = "useFirstSenseOnlyRight">false</property>
+			<property name = "entailing-relations">ANTONYM,SYNONYM,DERIVATIONALLY_RELATED,HYPERNYM,INSTANCE_HYPERNYM,MEMBER_HOLONYM,ENTAILMENT</property>
+			<property name = "wordnet-depth">3</property>
+		</section>
+		
+		<!-- VerbOcean configuration parameters -->
+		<section name = "verb-ocean">
+			<property name = "useLemma">true</property>
+			<property name = "version">unrefined.2004-05-20</property>
+			<property name = "threshold">1</property>
+			<property name = "file">src/main/resources/VerbOcean/verbocean.unrefined.2004-05-20.txt</property>
+			<property name = "allowedRelations">SIMILAR,OPPOSITE_OF,STRONGER_THAN</property>
+		</section>
+		
+		<!-- CatVar configuration parameters -->
+		<section name = "catvar">
+			<property name = "useLemma">true</property>
+			<property name = "version">2.1</property>
+			<property name = "catver-file-name">src/test/resources/data/CatVar/catvar21</property>
+		</section>
+		
+</configuration>

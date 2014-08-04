@@ -2,11 +2,25 @@ package eu.excitementproject.eop.core.component.distance;
 
 import treedist.TreeImpl;
 
+/**
+ * 
+ * This class extends TreeImpl to implement Tree Edit Distance
+ * 
+ * @author roberto zanoli
+ * @author silvia colombo
+ * 
+ * @since August 2014
+ *
+ */
 public class LabeledTree extends TreeImpl {
 	
 	private int[] labels;
 	private FToken[] tokens;
 	
+	
+	/**
+	 * The constructor
+	 */
 	public LabeledTree(int[] parents, int[] labels) {
 		super(parents);
 
@@ -18,6 +32,10 @@ public class LabeledTree extends TreeImpl {
 		this.labels = labels;
 	}
 	
+	
+	/**
+	 * The constructor
+	 */
 	public LabeledTree(int[] parents, int[] labels, FToken[] tokens) {
 		super(parents);
 
@@ -28,33 +46,54 @@ public class LabeledTree extends TreeImpl {
 		
 		this.labels = labels;
 		this.tokens = tokens;
+		
 		getDeprelRelationsFromNodeToRoot();
 		
 	}
 
-	public int getLabel(int nodeId) {
+	
+	/**
+	 * Get the label of the node in the tree (i.e. the token id)
+	 * 
+	 * @return the label of the token
+	 */
+	protected int getLabel(int nodeId) {
 		
 		return labels[nodeId];
 		
 	}
 	
-	public FToken getToken(int nodeId) {
+	
+	/**
+	 * Get the token of the specified node in the tree
+	 * 
+	 * @return the token of the specified node
+	 */
+	protected FToken getToken(int nodeId) {
 		
 		return tokens[nodeId];
 		
 	}
 	
-    public FToken[] getTokens() {
+	
+	/**
+	 * Get the list of the tokens in the tree
+	 * 
+	 * @return the list of the tokens
+	 */
+    protected FToken[] getTokens() {
 		
 		return this.tokens;
 		
 	}
     
-
-    //given a tree and a node it return the path from the node to the root of the tree
+    
+    /**
+     * It calculates the path from the node to the root of the tree
+     * 
+     */
     private void getDeprelRelationsFromNodeToRoot() {
 		
-    	//store the path of each node containing the token from the node to the root of the tree
     	for (int z = 0; z < this.tokens.length; z++) {
     		FToken token_z = this.tokens[z];
     		String relations = "";
@@ -67,9 +106,7 @@ public class LabeledTree extends TreeImpl {
     			else
     				relations = relations + "#" + deprel;
     			nodeId = this.getParent(nodeId);
-    			//System.out.print("====" + nodeId);
     		}
-    		//System.out.println();
     		token_z.setDeprelRelations(relations);
     	}
 		

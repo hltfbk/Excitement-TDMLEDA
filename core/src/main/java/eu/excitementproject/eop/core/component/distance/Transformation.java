@@ -1,21 +1,32 @@
 package eu.excitementproject.eop.core.component.distance;
 
-
+/**
+ * 
+ * This class represents the transformations that the FixedWeightEditDistance component
+ * does to obtain the Hypothesis H from the Text T. The transformation can then be used
+ * as features for classifying Entailment relations.
+ * 
+ * @author roberto zanoli
+ * @author silvia colombo
+ * 
+ * @since August 2014
+ */
 public class Transformation {
 	
 	//replace transformation
-	protected final static String REPLACE = "rep";
+	public final static String REPLACE = "rep";
 	//match transformation
-	protected final static String MATCH = "match";
+	public final static String MATCH = "match";
 	//insertion transformation
-	protected final static String INSERTION = "ins";
+	public final static String INSERTION = "ins";
 	//deletion transformation
-	protected final static String DELELETION = "del";
+	public final static String DELETION = "del";
 
-	//i.e. replace, match, deletion, insertion
+	//transformation type, i.e. replace, match, deletion, insertion
 	private String type;
 	
-	//the resource used to do the transformation, e.g. WORDNET__3.0__HYPERNYM__0.5__TtoH  
+	//the resource used to do the transformation, 
+	//e.g. WORDNET__3.0__HYPERNYM__0.5__TtoH  
 	private String info;	
 	
 	//token in the text
@@ -46,7 +57,7 @@ public class Transformation {
 	
 	
 	/**
-	 * @param type the transformation type: deletion, substitution, insertion, deletion
+	 * @param type the transformation type: insertion, deletion
 	 * @param token the token involved in the transformation
 	 * 
 	 */
@@ -58,6 +69,7 @@ public class Transformation {
 		}
 		else
 			this.token_T = token;
+		
 	}
 
 	
@@ -70,6 +82,19 @@ public class Transformation {
 	public String getType() {
 		
 		return this.type;
+		
+	}
+	
+	
+	/**
+	 * Get the type
+	 * 
+	 * @return the type
+	 * 
+	 */
+	public void setType(String type) {
+		
+		this.type = type;
 		
 	}
 
@@ -111,7 +136,7 @@ public class Transformation {
 		return token_H;
 		
 	}
-
+	
 	
 	/**
 	 * Print the transformation
@@ -128,7 +153,7 @@ public class Transformation {
 			return ("Type: " + this.type + " Info: " + this.info + " token_T: " + this.token_T + " token_H: " + this.token_H);
 			
 		case MATCH:
-			return ("Type: " + this.type + " Info: " + this.info + " token_T: " + this.token_T + " token_H: " + this.token_H );
+			return ("Type: " + this.type + " Info: " + this.info + " token_T: " + this.token_T + " token_H: " + this.token_H);
 		
 		case INSERTION:
 			return ("Type: " + this.type + " token_H:: " + this.token_H );
@@ -142,7 +167,7 @@ public class Transformation {
 	
 	
 	/**
-	 * Print the transformation when it refers to replace, match, deletion or insertion operations
+	 * Print the transformation
 	 * 
 	 * @param replace print the transformation when it is a replace transformation
 	 * @param match print the transformation when it is a match transformation
@@ -154,16 +179,16 @@ public class Transformation {
 	public String print(boolean replace, boolean match, boolean deletion, boolean insertion) {
 		
 		if (type.equals(REPLACE) && replace == true) 
-			return ("Type:" + this.type + "#" + "Info:" + this.info + "#" + "T_DPrelR:" + this.token_T.getDeprelRelations() + "#" + "H_DPrelR:" + this.token_H.getDeprelRelations());
-			
+			return ("Type:" + this.type + "#" + "Info:" + this.info + "#" + "T_DPrel:" + this.token_T.getDeprel() + "#" + "H_DPrel:" + this.token_H.getDeprel());
+		
 		else if (type.equals(MATCH) && match == true) 
-			return ("Type:" + this.type + "#" + "Info:" + this.info + "#" + "T_DPrelR:" + this.token_T.getDeprelRelations() + "#" + "H_DPrelR:" + this.token_H.getDeprelRelations());
+			return ("Type:" + this.type + "#" + "Info:" + this.info + "#" + "T_DPrel:" + this.token_T.getDeprel() + "#" + "H_DPrel:" + this.token_H.getDeprel());
 		
-		else if (type.equals(INSERTION) && insertion == true) 
-			return ("Type:" + this.type + "#" + "H_DPrelR:" + this.token_H.getDeprelRelations() );
+		else if (type.equals(INSERTION) && insertion == true)
+		    return ("Type:" + this.type + "#" + "H_DPrel:" + this.token_H.getDeprel() );
 		
-		else if (type.equals(DELELETION) && deletion == true) 
-			return ("Type:" + this.type + "#" + "T_DPrelR:" + this.token_T.getDeprelRelations() );
+		else if (type.equals(DELETION) && deletion == true) 
+		    return ("Type:" + this.type + "#" + "T_DPrel:" + this.token_T.getDeprel() );
 		
 		return null;
 		

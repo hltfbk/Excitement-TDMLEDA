@@ -38,46 +38,111 @@ a configuration file means allowing other users to replicate the same experiment
 		<property name="activatedEDA">eu.excitementproject.eop.core.TransformationDrivenEDA</property>
 		<!-- The language: [EN] -->
 		<property name="language">EN</property>
-		<!-- The linguistic annotation pipeline to preprocess the data to be annotated: [OpenNLPTaggerEN|TreeTaggerEN] -->
-		<!-- Differently to OpenNLPTagger, TreeTagger can produce the lemma and it is the pipeline to be
-		used when FixedWeightLemmaEditDistance is selected. Be sure to have TreeTagger installed before using it -->
-		<!-- <property name="activatedLAP">eu.excitementproject.eop.lap.dkpro.TreeTaggerEN</property> -->
+		<!-- The linguistic annotation pipeline to preprocess the data to be annotated: [MaltParserEN] -->
 		<property name="activatedLAP">eu.excitementproject.eop.lap.dkpro.MaltParserEN</property>
 	</section>
 	
 	
-	<!-- FixedWeightTokenEditDistance uses the token to calculate the distance between each pair T-H -->
+	<!-- FixedWeightTreeEditDistance to calculate the distance between each pair T-H -->
 	<section name="eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance">
 	    
-	    <!-- The configuration to be used by the component -->
+	    <!-- The configuration to be used by the component: [basic] -->
 	    <property name="instances">basic</property>
 	  
 		<!-- This configuration uses LexicalAligner -->
 		<subsection name="basic">
+		    <!-- The liexical aligner component to do the matches between the tokens -->
 			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property>
-		    <property name="configuration-file">src/test/resources/configuration-file/LexicalAligner_TreeEditDistance_EN.xml</property>
+		    
+		    <!-- The configuration file of the aligner component -->
+		    <property name="configuration-file">./src/main/resources/configuration-file/TreeEditDistance_LexicalAligner_EN.xml</property>
+		    
+		    <!-- The file containing your own alignments; the file has to be in this format: token1_pos \t token2_pos, e.g.
+		    
+		    animal_NN       dog_NN
+            beside_IN       near_IN
+            
+            Empty value for not set  -->
+		    -->
+		    <!-- <property name="user-alignments"></property> -->
+		    <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property>
+		    
+		    
+		    <!-- The verbosity level: [INFO|FINE|FINER] -->
+		    <property name="verbosity-level">INFO</property>
+		    <!-- <property name="verbosity-level">FINE</property> -->
+		    <!-- <property name="verbosity-level">FINER</property> -->
 		</subsection>
 		
 	</section>	
 	
-		
 	<!-- EditDistanceBasicEDA uses the weights in the configuration file to calculate the entailment -->
 	<section name="eu.excitementproject.eop.core.TransformationDrivenEDA">
 	
-		<property name="trainDir">/tmp/training/</property> 
+	    <!-- D A T A S E T S -->
+	
+	    <!-- The training data set -->
+		<property name="trainDir">/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/</property> 
+		<!-- The test data set -->
 		<property name="testDir">/tmp/test/</property>
-		<property name="tmpDir">/tmp/temporaryfiles/</property>
-		<property name="model">/tmp/temporaryfiles/NaiveBayes.model</property>
-		<property name="classifier">weka.classifiers.bayes.NaiveBayes</property>
-		<property name="cross-validation">false</property>
-		<property name="feature-selection">false</property>
-		<property name="max-number-of-features">3</property>
 		
-		<!-- component to be used by EDA: [FixedWeightTokenEditDistance|FixedWeightLemmaEditDistance] 
+		
+		<!-- C L A S S I F I E R S -->
+		
+		<!-- 
+		<property name="classifier">weka.classifiers.trees.DecisionStump</property>
+		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/DecisionStump.model</property>
+		-->
+		
+		<!-- 
+		<property name="classifier">weka.classifiers.bayes.NaiveBayes</property>
+		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/NaiveBayes.model</property>
+		-->
+		
+		<!--
+		<property name="classifier">weka.classifiers.trees.J48</property>
+		<property name="classifier-parameters">-C 0.25 -M 2</property>
+		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/J48.model</property> 
+		-->
+		
+		<property name="classifier">weka.classifiers.functions.SMO</property>
+		<property name="classifier-parameters">-C 1.0 -L 0.001 -P 1.0E-12 -N 0 -V -1 -W 1 -K weka.classifiers.functions.supportVector.PolyKernel -C 250007 -E 1.0</property>
+		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/SMO.model</property>
+		
+		<!--
+		<property name="classifier">weka.classifiers.meta.Vote</property>
+		<property name="classifier-parameters">-S 1 -B weka.classifiers.functions.SMO -C 1.0 -L 0.001 -P 1.0E-12 -N 0 -V -1 -W 1 -K weka.classifiers.functions.supportVector.PolyKernel -C 250007 -E 1.0 -B weka.classifiers.trees.J48 -C 0.25 -M 2 -R AVG</property>
+		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/Vote.model</property>
+		-->
+		
+		<!-- Enable 10-fold-cross-validation on the training data set: [true|false] -->
+		<property name="cross-validation">true</property>
+		
+		<!-- Save the training data set into arff format to let one use the WEKA experimenter tool;
+		empty value for not set  -->
+		<property name="save-arff-format">/tmp/data.arff</property>
+		<!-- <property name="save-training-dataset-into-arff-format"></property> -->
+		
+		<!-- The verbosity level: [INFO|FINE|FINER] -->
+		<property name="verbosity-level">INFO</property>
+		<!-- <property name="verbosity-level">FINE</property> -->
+		<!-- <property name="verbosity-level">FINER</property> -->
+		
+		<!-- component to be used by EDA: [FixedWeightTreeEditDistance] 
 		FixedWeightLemmaEditDistance can be used only when the preprocessing pipeline provides lemmas-->
 	    <property name="components">eu.excitementproject.eop.core.component.distance.FixedWeightTreeEditDistance</property>
 	    
-	
+		<!-- Transformations are used as features by the EDA. Decide which type of transformation
+		the EDA has to use: match, replacement, insertion, or deletion -->
+		<property name="transformations">replacement,insertion,deletion</property>
+		<!-- <property name="transformations">replacement,insertion</property> -->
+		<!-- ......................  -->
+		<!-- <property name="transformations">deletion</property> -->
+		
+		<!-- If the punctuation has to be removed: [true|false] -->
+		<property name="punctuation-removal">true</property>
+		<!-- <property name="punctuation-removal">false</property> -->
+		
 	</section>
 	
 </configuration>
