@@ -1142,17 +1142,12 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			LAPAccess lap = new MaltParserEN();
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
-<<<<<<< HEAD
+
 			File input = new File("/tmp/multitreeexamples.xml");
 			System.out.println(input);// this only holds the first 3 of them.. generate 3 XMIs (first 3 of t.xml) 
 			//File input = new File("./src/test/resources/t.xml");  // this is full, and will generate 800 XMIs (serialized CASes)
 			File outputDir = new File("/tmp/training/"); 
-=======
 
-			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
-			
-			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
->>>>>>> upstream/master
 			try {
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
@@ -1166,7 +1161,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			
 			tdEDA.initialize(config);
 			
-			File f = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
+			File f = new File("/home/scolombo/tbmleda/tmpfiles/");
 			
 			//build up the dataset from training data
 			for (File xmi : f.listFiles()) {

@@ -82,7 +82,7 @@ a configuration file means allowing other users to replicate the same experiment
 	    <!-- D A T A S E T S -->
 	
 	    <!-- The training data set -->
-		<property name="trainDir">/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/</property> 
+		<property name="trainDir">/tmp/training/</property> 
 		<!-- The test data set -->
 		<property name="testDir">/tmp/test/</property>
 		
