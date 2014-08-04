@@ -359,6 +359,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 	    	//the dependency tree of Hypothesis
 	    	String h_tree = cas2CoNLLX(hView);
+
 	    	logger.fine("\nThe Tree of Hypothesis:\n" + h_tree);
 	    	
 	    	//remove punctuation
@@ -366,7 +367,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    	h_tree = removePunctuation(h_tree);
 		    	logger.fine("\nThe Tree of Hypothesis after removing punctuation:\n" + h_tree);
 	    	}
-	    	
+
 	    	//create the Hypothesis fragment
 	    	Fragment h_fragment = getFragment(h_tree);
             //calculate the distance between T and H by using the matches
@@ -397,6 +398,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 	   	// get Text
 		    JCas tView = jcas.getView(LAP_ImplBase.TEXTVIEW);
 		    //get the dependency tree of Text
+
 		    String t_tree = cas2CoNLLX(tView);
 		    logger.fine("Text:\n" + t_tree);
 		    
@@ -405,13 +407,14 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 				t_tree = removePunctuation(t_tree);
 				logger.fine("\nThe Cleaned Tree of Text:\n" + t_tree);
 	    	}
-		    
+
 		    //create the Text fragment
 		    Fragment t_fragment = getFragment(t_tree);
 		    //get Hypothesis
 		    JCas hView = jcas.getView(LAP_ImplBase.HYPOTHESISVIEW); 
 		    //the dependency tree of Hypothesis
 		    String h_tree = cas2CoNLLX(hView);
+
 		    logger.fine("Hypothesis:\n" + h_tree);
 		    
 		    //remove punctuation
@@ -419,9 +422,10 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 				h_tree = removePunctuation(h_tree);
 				logger.fine("\nThe Cleaned Tree of Hypothesis:\n" + h_tree);
 	    	}
-		    
+
 		    //create the Hypothesis fragment
 		    Fragment h_fragment = getFragment(h_tree);
+		    
 	        //calculate the distance between T and H by using the matches
 		    //provided by the aligner component.
 		    distanceValue = distance(t_fragment, h_fragment, alignments);
@@ -520,7 +524,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	double norm = 1.0;
     	
     	try {
-    	
+
 	    	//Creating the Tree of Text
 	    	LabeledTree t_tree = createTree(t);
 	        //logger.info("T:" + t_tree);
@@ -783,7 +787,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	return fragment;
     	
     }
-    
+
     
     /**
      * Given a cas (it contains the T view or the H view) in input it produces a
