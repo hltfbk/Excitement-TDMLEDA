@@ -229,6 +229,10 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	String t_tree = cas2CoNLLX(tView);
 	    	//TODO
 	    	logger.info("\nThe Tree of Text:\n" + t_tree);
+	    	
+	       	t_tree = mergeTrees(t_tree);
+	    	logger.info("\nThe Merged Tree of Text:\n" + t_tree);
+	    	
 	    	t_tree = removePunctuation(t_tree);
 	    	logger.info("\nThe Cleaned Tree of Text:\n" + t_tree);
 	    	//create the Text fragment
@@ -238,7 +242,11 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	//the dependency tree of Hypothesis
 	    	String h_tree = cas2CoNLLX(hView);
 	    	logger.info("\nThe Tree of Hypothesis:\n" + h_tree);
-	    	h_tree = removePunctuation(h_tree);
+	    	
+	       	h_tree = mergeTrees(h_tree);
+	       	logger.info("\nThe Merged Tree of Hypothesis:\n" + h_tree);
+	       	
+	       	h_tree = removePunctuation(h_tree);
 	    	logger.info("\nThe Cleaned Tree of Hypothesis:\n" + h_tree);
 	    	//create the Hypothesis fragment
 	    	Fragment h_fragment = getFragment(h_tree);
@@ -275,6 +283,10 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    String t_tree = removePunctuation(cas2CoNLLX(tView));
 		    logger.info("Text:\n" + t_tree);
 		    //TODO
+		    
+		    t_tree = mergeTrees(t_tree);
+		    logger.info("Merged text:\n" + t_tree);
+		    
 		    t_tree = removePunctuation(t_tree);
 		    logger.info("Cleaned text:\n" + t_tree);
 		    //create the Text fragment
@@ -284,8 +296,13 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    //the dependency tree of Hypothesis
 		    String h_tree = cas2CoNLLX(hView);
 		    logger.info("Hypothesis:\n" + h_tree);
+		    
+		    h_tree = mergeTrees(h_tree);
+		    logger.info("Merged hypothesis:\n" + h_tree);
+		    
 		    h_tree = removePunctuation(h_tree);
 		    logger.info("Cleaned hypothesis:\n" + h_tree);
+		    
 		    //create the Hypothesis fragment
 		    Fragment h_fragment = getFragment(h_tree);
 		    
@@ -638,6 +655,39 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	}
     	return cleaned_tree+"\n";
     }
+   
+   //TODO
+   private String mergeTrees(String multiTree){
+	   String[] trees = multiTree.split("\n\n");
+	   String newTree = "";
+	   //add new node
+	   newTree+="1\t_\t_\t_\t_\t_\t_\t_\t_\t_\n";
+	   int prevtreelenght = 1;
+	   for (int i = 0; i < trees.length; i++){
+		   	String tree = trees[i];
+		   	String[] lines = tree.split("\n");
+		   	for(int j = 0; j<lines.length; j++){
+			   	String[] fields = lines[j].split("\\s");
+	   			int tokenId = Integer.parseInt(fields[0]);
+	   			fields[0] = (tokenId + prevtreelenght) + "";
+	   			if(fields[6].equals("_")){
+		   	    	fields[6] = "1";
+	   			}
+	   			else {
+	   				fields[6] = (Integer.parseInt(fields[6]) + prevtreelenght) + "";
+	   			}
+	   			String line = "";
+    			for (String field:fields){
+    				line+= field + "\t"; 
+    			}
+    			lines[j]=line;
+    			newTree+=line+"\n";
+    			
+		   	}
+		   	prevtreelenght+=lines.length;
+	   }
+	   return newTree;
+   }
     
     /**
      * Given a cas (it contains the T view or the H view) in input it produces a
@@ -647,6 +697,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
      *  
      *  @return the tree in the CoNLL-X format
      */
+   
     private String cas2CoNLLX(JCas aJCas) {
     	
     	StringBuffer result = new StringBuffer();
