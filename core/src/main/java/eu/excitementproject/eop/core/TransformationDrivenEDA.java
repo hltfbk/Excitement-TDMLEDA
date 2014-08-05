@@ -1150,12 +1150,16 @@ public class TransformationDrivenEDA<T extends TEDecision>
 
 			File input = new File("/tmp/casi-particolari.xml");
 
-			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
 			
 			File outputDir  = new File("/tmp/training");
 
 			try {
-				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+
+				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+
+				System.out.println(input);
+				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+
 			} catch (Exception e)
 			{
 				System.err.println(e.getMessage()); 
@@ -1164,6 +1168,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			tdEDA.startTraining(config);
 			
 			tdEDA.shutdown();
+			System.exit(0);
+			
 			System.exit(0);
 			
 			tdEDA.initialize(config);

@@ -185,7 +185,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			logger.fine("user alignments:" + this.userAlignments.size());
 			
 			//create an instance of the aligner component
-	    	if (this.aligner == null) {
+	    	if (this.aligner == null && componentName != null && !componentName.equals("")) {
 				
 				try {
 					
@@ -252,7 +252,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			logger.fine("user alignments:" + this.userAlignments.size());
 			
 			//create an instance of the aligner component
-	    	if (this.aligner == null) {
+	    	if (this.aligner == null && componentName != null && !componentName.equals("")) {
 				
 				try {
 					
@@ -321,7 +321,9 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		
 		logger.info("shut down ...");
 		
-		this.aligner.cleanUp();
+		if (this.aligner != null)
+			this.aligner.cleanUp();
+		
 		this.transformations =  null;		 
 		this.instances = null;
 		this.alignments = null;
@@ -480,9 +482,11 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		try {
 			
 			// Call the aligner component to get the alignments between T and H
-			logger.finer("\ngetting the alignments ...");
-			aligner.annotate(jcas);
-			logger.finer("done.");
+			if (this.aligner != null) {
+				logger.finer("\ngetting the alignments ...");
+				aligner.annotate(jcas);
+				logger.finer("done.");
+			}
 						
 			logger.finer("\n\nalignments list:\n");
 			
