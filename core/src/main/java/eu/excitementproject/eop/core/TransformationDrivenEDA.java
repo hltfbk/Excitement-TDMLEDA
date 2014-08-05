@@ -1148,7 +1148,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
 
-			File input = new File("/tmp/multitreeexamples.xml");
+			File input = new File("/tmp/casi-particolari.xml");
 
 			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
 			
@@ -1164,6 +1164,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			tdEDA.startTraining(config);
 			
 			tdEDA.shutdown();
+			System.exit(0);
 			
 			tdEDA.initialize(config);
 			
