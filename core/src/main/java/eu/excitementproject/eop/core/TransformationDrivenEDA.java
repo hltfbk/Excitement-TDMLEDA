@@ -1147,14 +1147,14 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
-			File input = new File("/home/zanoli/TBMLEDA/dataset/casi-particolari.xml");
+			//File input = new File("/home/zanoli/TBMLEDA/dataset/casi-particolari.xml");
 
-			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
+			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_all.xml");
 			
 			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			try {
 				System.out.println(input);
-				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
 			{
 				System.err.println(e.getMessage()); 
@@ -1163,6 +1163,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			tdEDA.startTraining(config);
 			
 			tdEDA.shutdown();
+			
+			System.exit(0);
 			
 			tdEDA.initialize(config);
 			
