@@ -69,7 +69,7 @@ a configuration file means allowing other users to replicate the same experiment
 		    
 		    
 		    <!-- The verbosity level: [INFO|FINE|FINER] -->
-		    <property name="verbosity-level">INFO</property>
+		    <property name="verbosity-level">FINER</property>
 		    <!-- <property name="verbosity-level">FINE</property> -->
 		    <!-- <property name="verbosity-level">FINER</property> -->
 		</subsection>
@@ -124,7 +124,7 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- <property name="save-training-dataset-into-arff-format"></property> -->
 		
 		<!-- The verbosity level: [INFO|FINE|FINER] -->
-		<property name="verbosity-level">INFO</property>
+		<property name="verbosity-level">FINER</property>
 		<!-- <property name="verbosity-level">FINE</property> -->
 		<!-- <property name="verbosity-level">FINER</property> -->
 		
