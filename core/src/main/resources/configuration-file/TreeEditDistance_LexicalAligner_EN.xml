@@ -13,7 +13,7 @@
 			
 			
 			<!-- VerbOcean -->
-			<property name = "verb-ocean">eu.excitementproject.eop.core.component.lexicalknowledge.verb_ocean.VerbOceanLexicalResource</property>
+			<!-- <property name = "verb-ocean">eu.excitementproject.eop.core.component.lexicalknowledge.verb_ocean.VerbOceanLexicalResource</property> -->
 			
 			
 	   </section>

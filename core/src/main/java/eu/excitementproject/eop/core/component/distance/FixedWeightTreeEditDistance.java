@@ -984,8 +984,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		
 			//ENTAILMENT
 		    if (token1.getLemma().equalsIgnoreCase(token2.getLemma()) ||
-		    		userAlignments.contains(token1.getForm() + "_" +  token1.getPOS() + "\t" +
-		    				token2.getForm() + "_" +  token2.getPOS())) {
+		    		userAlignments.contains(token1.getLemma() + "_" +  token1.getPOS() + "\t" +
+		    				token2.getLemma() + "_" +  token2.getPOS())) {
 		    			alignmentType = "LOCAL-ENTAILMENT";
 		    			result[0] = alignmentType;
 		    			result[1] = null;
