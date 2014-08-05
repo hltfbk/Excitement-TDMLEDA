@@ -1149,7 +1149,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 
 			//File input = new File("/home/zanoli/TBMLEDA/dataset/casi-particolari.xml");
 
-			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_all.xml");
+			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
 			
 			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			try {
