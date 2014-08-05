@@ -1149,14 +1149,14 @@ public class TransformationDrivenEDA<T extends TEDecision>
 
 
 
-			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
+			File input = new File("/tmp/SICK_train.xml");
 
 			
 			File outputDir  = new File("/tmp/training");
 
 			try {
 
-				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 
 				System.out.println(input);
 				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
