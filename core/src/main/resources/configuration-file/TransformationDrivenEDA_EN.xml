@@ -52,6 +52,7 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- This configuration uses LexicalAligner -->
 		<subsection name="basic">
 		    <!-- The liexical aligner component to do the matches between the tokens -->
+		    <!-- <property name="alignment-component"></property> -->
 			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property>
 		    
 		    <!-- The configuration file of the aligner component -->
@@ -69,7 +70,7 @@ a configuration file means allowing other users to replicate the same experiment
 		    
 		    
 		    <!-- The verbosity level: [INFO|FINE|FINER] -->
-		    <property name="verbosity-level">FINER</property>
+		    <property name="verbosity-level">INFO</property>
 		    <!-- <property name="verbosity-level">FINE</property> -->
 		    <!-- <property name="verbosity-level">FINER</property> -->
 		</subsection>
@@ -124,7 +125,7 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- <property name="save-training-dataset-into-arff-format"></property> -->
 		
 		<!-- The verbosity level: [INFO|FINE|FINER] -->
-		<property name="verbosity-level">FINER</property>
+		<property name="verbosity-level">INFO</property>
 		<!-- <property name="verbosity-level">FINE</property> -->
 		<!-- <property name="verbosity-level">FINER</property> -->
 		

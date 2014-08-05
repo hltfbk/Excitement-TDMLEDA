@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.ConsoleHandler;
@@ -506,6 +507,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 	public void startTraining(CommonConfig config) throws ConfigurationException, EDAException, ComponentException {
 		
 		logger.info("training ...");
+		
+		Set<String> allineamenti = new HashSet<String>();
 		
 		try {
 
@@ -1129,7 +1132,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
     }
 	
 	
-	
+	/*
 	public static void main(String args[]) {
 		
 		TransformationDrivenEDA<EditDistanceTEDecision> tdEDA;
@@ -1147,14 +1150,12 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
-			//File input = new File("/home/zanoli/TBMLEDA/dataset/casi-particolari.xml");
-
 			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
 			
 			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			try {
 				System.out.println(input);
-				//lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
+				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
 			{
 				System.err.println(e.getMessage()); 
@@ -1191,11 +1192,6 @@ public class TransformationDrivenEDA<T extends TEDecision>
 		}
 		
 	}
-	
-	/*
-	 * awk 'BEGIN{counter = 0; FS="\t";} {pair_ID = $1; sentence_A=$2; sentence_B=$3; relatedness_score=$4; entailment_judgment=$5; if (entailment_judgment == "NEUTRAL") entailment_judgment = "UNKNOWN"; if (counter == 0) {printf("%s\n%s\n", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<entailment-corpus lang=\"EN\">"); counter = counter + 1;} else{printf("<pair id=\"%s\" entailment=\"%s\" task=\"IR\">\n<t>%s</t>\n<h>%s</h>\n</pair>\n", pair_ID, entailment_judgment, sentence_A, sentence_B);}} END{printf("%s\n", "</entailment-corpus>");}' SICK_train.txt > SICK_train.xml
-     *
-	 */
-	
+	*/
 	
 }
