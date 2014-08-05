@@ -557,6 +557,10 @@ public class TransformationDrivenEDA<T extends TEDecision>
 				String goldAnswer = pair.getGoldAnswer(); //get gold annotation
 				logger.finer("gold annotation: " + goldAnswer);
 				
+				//get the distance between T and H
+                double distance = component.calculation(jcas).getDistance();
+                logger.fine("distance:" + distance);
+
 				//get the transformations to transform T into H
 				List<Transformation> transformations = component.getTransformations();
 				
@@ -1143,10 +1147,12 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
+
 			File input = new File("/tmp/multitreeexamples.xml");
-			System.out.println(input);// this only holds the first 3 of them.. generate 3 XMIs (first 3 of t.xml) 
-			//File input = new File("./src/test/resources/t.xml");  // this is full, and will generate 800 XMIs (serialized CASes)
-			File outputDir = new File("/tmp/training/"); 
+
+			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_train.xml");
+			
+			File outputDir  = new File("/tmp/training");
 
 			try {
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
