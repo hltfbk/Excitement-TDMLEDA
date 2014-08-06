@@ -23,7 +23,7 @@ public class TransformationDrivenEDATest {
 	static Logger logger = Logger.getLogger(EditDistanceEDATest.class
 			.getName());
 	
-	//@Ignore
+
 	@Test
 	public void test() {
 		
@@ -54,11 +54,11 @@ public class TransformationDrivenEDATest {
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
-			//File input = new File("/home/zanoli/TBMLEDA/dataset/casi-particolari.xml");
+			File input = new File("/tmp/subset.xml");
 
-			File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_all.xml");
+			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_all.xml");
 			
-			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
+			File outputDir  = new File("/tmp/training/");
 			try {
 				System.out.println(input);
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
@@ -75,7 +75,7 @@ public class TransformationDrivenEDATest {
 			
 			tdEDA.initialize(config);
 			
-			File f = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
+			File f = new File("/tmp/training/");
 			
 			//build up the dataset from training data
 			for (File xmi : f.listFiles()) {
