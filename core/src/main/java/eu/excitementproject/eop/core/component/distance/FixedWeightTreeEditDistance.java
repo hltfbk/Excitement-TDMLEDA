@@ -1110,7 +1110,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			String alignment = getAlignmentType(token_t, token_h)[0];
 			if (alignment != null && alignment.equals("LOCAL-ENTAILMENT")) {
 				return mMatchWeight; //return 0;
-				
+			} else if (token_t.getDeprel().equals(token_h.getDeprel())) {
+				return mSubstituteWeight/2;
 			} else { //replace
 				return mSubstituteWeight; //return 1;
 			}

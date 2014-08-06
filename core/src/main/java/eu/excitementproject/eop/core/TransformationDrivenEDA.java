@@ -547,6 +547,8 @@ public class TransformationDrivenEDA<T extends TEDecision>
 					continue;
 				}
 				
+				System.err.println(xmi.getName());
+				
 				//fileCounter++;
 				
 				// The annotated pair is added into the CAS.
@@ -681,8 +683,10 @@ public class TransformationDrivenEDA<T extends TEDecision>
 			for (Entry<String, Integer> entry : entriesSortedByValues(featuresList)) {
 		        String featureName = entry.getKey();
 		        
+		        /*
 		        if (featureName.indexOf("distance:") != -1)
 		        	featureName = featureName.split(":")[0];
+		        	*/
 		        
 				//each of the extracted features is a new attribute
 				Attribute attribute_i = new Attribute(featureName);
@@ -746,6 +750,7 @@ public class TransformationDrivenEDA<T extends TEDecision>
 					String feature_j = iterator_j.next();
 					//logger.finer("feature j:" + feature_j);
 					
+					/*
 					if (feature_j.indexOf("distance:") != -1) {
 						String new_feature_j = feature_j.split(":")[0];
 						//System.err.println(feature_j);
@@ -756,7 +761,9 @@ public class TransformationDrivenEDA<T extends TEDecision>
 						instance_i.setValue(featureIndex, weight);//1.0 is the feature weight
 					}
 					
-					else if (featuresList.containsKey(feature_j)) {
+					else 
+					*/
+					if (featuresList.containsKey(feature_j)) {
 						//System.err.println(feature_j + "\t" +  featuresList.get(feature_j));
 						int featureIndex = featuresList.get(feature_j);
 						//only the features with weight different from 0 are set
