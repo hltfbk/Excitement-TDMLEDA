@@ -140,6 +140,10 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- ......................  -->
 		<!-- <property name="transformations">deletion</property> -->
 		
+		<!-- If the dataset contains t or h with multiple sentences: [true|false] -->
+		<property name="multiple-trees">true</property>
+		<!-- <property name="multiple-trees">false</property> -->
+		
 		<!-- If the punctuation has to be removed: [true|false] -->
 		<property name="punctuation-removal">true</property>
 		<!-- <property name="punctuation-removal">false</property> -->
