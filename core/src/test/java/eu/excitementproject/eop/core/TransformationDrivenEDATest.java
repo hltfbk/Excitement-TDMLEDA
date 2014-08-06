@@ -60,7 +60,6 @@ public class TransformationDrivenEDATest {
 			
 			File outputDir  = new File("/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/");
 			try {
-				System.out.println(input);
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
 			{
