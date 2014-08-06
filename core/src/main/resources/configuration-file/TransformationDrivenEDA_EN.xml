@@ -64,9 +64,8 @@ a configuration file means allowing other users to replicate the same experiment
             beside_IN       near_IN
             
             Empty value for not set  -->
-		    -->
-		    <!-- <property name="user-alignments"></property> -->
-		    <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property>
+		    <property name="user-alignments"></property> -->
+		    <!-- <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property> -->
 		    
 		    
 		    <!-- The verbosity level: [INFO|FINE|FINER] -->
