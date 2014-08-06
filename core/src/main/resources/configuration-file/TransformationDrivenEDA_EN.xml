@@ -64,10 +64,10 @@ a configuration file means allowing other users to replicate the same experiment
             beside_IN       near_IN
             
             Empty value for not set  -->
+
 		    <property name="user-alignments"></property> -->
 		    <!-- <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property> -->
-		    
-		    
+
 		    <!-- The verbosity level: [INFO|FINE|FINER] -->
 		    <property name="verbosity-level">INFO</property>
 		    <!-- <property name="verbosity-level">FINE</property> -->
@@ -82,7 +82,7 @@ a configuration file means allowing other users to replicate the same experiment
 	    <!-- D A T A S E T S -->
 	
 	    <!-- The training data set -->
-		<property name="trainDir">/hardmnt/norris0/zanoli/TBMLEDA/tmpfiles/</property> 
+		<property name="trainDir">/tmp/training/</property> 
 		<!-- The test data set -->
 		<property name="testDir">/tmp/test/</property>
 		
@@ -107,7 +107,7 @@ a configuration file means allowing other users to replicate the same experiment
 		
 		<property name="classifier">weka.classifiers.functions.SMO</property>
 		<property name="classifier-parameters">-C 1.0 -L 0.001 -P 1.0E-12 -N 0 -V -1 -W 1 -K weka.classifiers.functions.supportVector.PolyKernel -C 250007 -E 1.0</property>
-		<property name="classifier-model">/hardmnt/norris0/zanoli/TBMLEDA/dataset/SMO.model</property>
+		<property name="classifier-model">/home/scolombo/tbmleda/model/SMO.model</property>
 		
 		<!--
 		<property name="classifier">weka.classifiers.meta.Vote</property>
