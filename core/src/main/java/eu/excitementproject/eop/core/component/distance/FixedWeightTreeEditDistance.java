@@ -1062,7 +1062,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    		result[0] = "UNKNOWN";
 		    		result[1] = alignment.getLinkInfo() + ":" + alignment.getDirection();
 		    	}
-		    	else if (alignment.getLinkInfo().indexOf("ANTONYM") != -1) {
+		    	else if (alignment.getLinkInfo().indexOf("ANTONYM") != -1 ||
+		    			alignment.getLinkInfo().indexOf("OPPOSITE-OF") != -1) {
 		    		result[0] = "LOCAL-CONTRADICTION";
 		    		result[1] = alignment.getLinkInfo() + ":" + alignment.getDirection();
 		    	}
@@ -1174,7 +1175,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 			String alignment = getAlignmentType(token_t, token_h)[0];
 			if (alignment != null && alignment.equals("LOCAL-ENTAILMENT")) {
 				return mMatchWeight; //return 0;
-				
+			} else if (token_t.getDeprel().equals(token_h.getDeprel())) {
+				return mSubstituteWeight/2;
 			} else { //replace
 				return mSubstituteWeight; //return 1;
 			}

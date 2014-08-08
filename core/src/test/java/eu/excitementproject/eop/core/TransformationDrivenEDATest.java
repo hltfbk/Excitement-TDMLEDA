@@ -54,13 +54,14 @@ public class TransformationDrivenEDATest {
 			// process TE data format, and produce XMI files.
 			// Let's process English RTE3 data (formatted as RTE5+) as an example. 
 
-			File input = new File("/tmp/subset.xml");
+			//File input = new File("/tmp/subset.xml");
+			//File input = new File("/home/zanoli/TBMLEDA/nice-dataset/all.xml");
+			File input = new File("/home/zanoli/TBMLEDA/dataset/SICK_all.xml");
 
 			//File input = new File("/hardmnt/norris0/zanoli/TBMLEDA/dataset/SICK_all.xml");
 			
-			File outputDir  = new File("/tmp/training/");
+			File outputDir  = new File("/home/zanoli/TBMLEDA/tmpfiles/");
 			try {
-				System.out.println(input);
 				lap.processRawInputFormat(input, outputDir); // outputDir will have those XMIs
 			} catch (Exception e)
 			{
