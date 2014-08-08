@@ -52,9 +52,9 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- This configuration uses LexicalAligner -->
 		<subsection name="basic">
 		    <!-- The liexical aligner component to do the matches between the tokens -->
-		    <!-- <property name="alignment-component"></property> -->
-			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property>
-		    
+		    <property name="alignment-component"></property>
+<!-- 			<property name="alignment-component">eu.excitementproject.eop.core.component.alignment.lexicallink.LexicalAligner</property> 
+ -->		    
 		    <!-- The configuration file of the aligner component -->
 		    <property name="configuration-file">./src/main/resources/configuration-file/TreeEditDistance_LexicalAligner_EN.xml</property>
 		    
@@ -64,7 +64,7 @@ a configuration file means allowing other users to replicate the same experiment
             beside_IN       near_IN
             
             Empty value for not set  -->
-		    -->
+		    
 		     <property name="user-alignments"></property> 
 		    <!--<property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property>-->
 		    
@@ -74,10 +74,7 @@ a configuration file means allowing other users to replicate the same experiment
 		    <!-- <property name="verbosity-level">FINE</property> -->
 		    <!-- <property name="verbosity-level">FINER</property> -->
 		    
-		    <!-- If the dataset contains t or h with multiple sentences: [true|false] -->
-			<property name="multiple-trees">true</property>
-			<!-- <property name="multiple-trees">false</property> -->
-			
+		
 			<!-- If the punctuation has to be removed: [true|false] -->
 			<property name="punctuation-removal">true</property>
 			<!-- <property name="punctuation-removal">false</property> -->
@@ -143,14 +140,10 @@ a configuration file means allowing other users to replicate the same experiment
 	    
 		<!-- Transformations are used as features by the EDA. Decide which type of transformation
 		the EDA has to use: match, replacement, insertion, or deletion -->
-		<property name="transformations">replacement,insertion,deletion</property>
+		<property name="transformations">match,replacement,insertion,deletion</property>
 		<!-- <property name="transformations">replacement,insertion</property> -->
 		<!-- ......................  -->
 		<!-- <property name="transformations">deletion</property> -->
-		
-		<!-- If the dataset contains t or h with multiple sentences: [true|false] -->
-		<property name="multiple-trees">true</property>
-		<!-- <property name="multiple-trees">false</property> -->
 		
 		<!-- If the punctuation has to be removed: [true|false] -->
 		<property name="punctuation-removal">true</property>
