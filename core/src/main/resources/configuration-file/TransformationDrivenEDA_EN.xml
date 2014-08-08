@@ -66,10 +66,20 @@ a configuration file means allowing other users to replicate the same experiment
             Empty value for not set  -->
 
 		    <property name="user-alignments"></property> -->
-		    <!-- <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property> -->
+		    <!--  <property name="user-alignments">/hardmnt/norris0/zanoli/TBMLEDA/dataset/user-alignments.txt</property> -->
+
+            
+		    <!-- If the dataset contains t or h with multiple sentences: [true|false] -->
+		    <property name="multiple-trees">false</property>
+		    <!-- <property name="multiple-trees">false</property> -->
+		
+		    <!-- If the punctuation has to be removed: [true|false] -->
+		    <property name="punctuation-removal">true</property>
+		    <!-- <property name="punctuation-removal">false</property> -->
+		
 
 		    <!-- The verbosity level: [INFO|FINE|FINER] -->
-		    <property name="verbosity-level">INFO</property>
+		    <property name="verbosity-level">FINER</property>
 		    <!-- <property name="verbosity-level">FINE</property> -->
 		    <!-- <property name="verbosity-level">FINER</property> -->
 		</subsection>
@@ -124,7 +134,7 @@ a configuration file means allowing other users to replicate the same experiment
 		<!-- <property name="save-training-dataset-into-arff-format"></property> -->
 		
 		<!-- The verbosity level: [INFO|FINE|FINER] -->
-		<property name="verbosity-level">INFO</property>
+		<property name="verbosity-level">FINER</property>
 		<!-- <property name="verbosity-level">FINE</property> -->
 		<!-- <property name="verbosity-level">FINER</property> -->
 		
@@ -134,18 +144,10 @@ a configuration file means allowing other users to replicate the same experiment
 	    
 		<!-- Transformations are used as features by the EDA. Decide which type of transformation
 		the EDA has to use: match, replacement, insertion, or deletion -->
-		<property name="transformations">match,replacement,insertion,deletion</property>
+		<property name="transformations">replacement,insertion,deletion</property>
 		<!-- <property name="transformations">replacement,insertion</property> -->
 		<!-- ......................  -->
 		<!-- <property name="transformations">deletion</property> -->
-		
-		<!-- If the dataset contains t or h with multiple sentences: [true|false] -->
-		<property name="multiple-trees">true</property>
-		<!-- <property name="multiple-trees">false</property> -->
-		
-		<!-- If the punctuation has to be removed: [true|false] -->
-		<property name="punctuation-removal">true</property>
-		<!-- <property name="punctuation-removal">false</property> -->
 		
 	</section>
 	

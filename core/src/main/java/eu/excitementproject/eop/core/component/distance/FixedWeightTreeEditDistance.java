@@ -1066,7 +1066,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    		result[0] = "UNKNOWN";
 		    		result[1] = alignment.getLinkInfo() + ":" + alignment.getDirection();
 		    	}
-		    	else if (alignment.getLinkInfo().indexOf("ANTONYM") != -1) {
+		    	else if (alignment.getLinkInfo().indexOf("ANTONYM") != -1 ||
+		    			alignment.getLinkInfo().indexOf("OPPOSITE-OF") != -1) {
 		    		result[0] = "LOCAL-CONTRADICTION";
 		    		result[1] = alignment.getLinkInfo() + ":" + alignment.getDirection();
 		    	}
