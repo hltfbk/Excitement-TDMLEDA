@@ -101,10 +101,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
      */
     private Set<String> userAlignments;
     /**
-     * if the dataset contains t or h with multiple sentences
-     */
-    private boolean multipleTrees;
-    /**
      * if the punctuation has to be removed from the trees
      */
     private boolean punctuationRemoval;
@@ -128,7 +124,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
         this.instances = null;
         this.aligner = null;
         this.alignments = null;
-        this.multipleTrees = false;
         this.punctuationRemoval = false;
         
     }
@@ -181,10 +176,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 					instanceNameValueTable.getString("alignment-component");
 			logger.fine("using:" + componentName);
 			
-			//if the dataset contains t or h with multiple sentences
-			multipleTrees = Boolean.parseBoolean(instanceNameValueTable.getString("multiple-trees"));
-			logger.fine("multiple trees:" + multipleTrees);
-			
 			//if the punctuation has to be removed from dependencies trees
 			punctuationRemoval = Boolean.parseBoolean(instanceNameValueTable.getString("punctuation-removal"));
 			logger.fine("punctuation removal:" + punctuationRemoval);
@@ -203,6 +194,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 					File configFile = new File(configurationFile);
 					ImplCommonConfig commonConfig = new ImplCommonConfig(configFile);
 					this.aligner = (LexicalAligner) componentClassConstructor.newInstance(commonConfig);
+					System.out.println("THE aligner is " +  aligner);
 					
 				} catch (Exception e) {
 					
@@ -240,7 +232,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	 * @param punctuationRemoval True if the punctuation has to be removed.
 	 * 
 	 */
-    public FixedWeightTreeEditDistance(String alignerComponentName, String alignerComponentConfigurationFileName, String usersAlignmentFile, boolean multipleTrees, boolean punctuationRemoval) throws ConfigurationException, ComponentException {
+    public FixedWeightTreeEditDistance(String alignerComponentName, String alignerComponentConfigurationFileName, String usersAlignmentFile, boolean punctuationRemoval) throws ConfigurationException, ComponentException {
     
     	this();
         
@@ -251,10 +243,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	//get the aligner component configuration
 			String componentName = alignerComponentName;
 			logger.fine("using:" + componentName);
-			
-			//if the dataset contains t or h with multiple sentences
-			this.multipleTrees = multipleTrees;
-			logger.fine("multiple trees: " + multipleTrees);
 			
 			//if the punctuation has to be removed from dependencies trees
 			this.punctuationRemoval = punctuationRemoval;
@@ -340,7 +328,6 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		this.transformations =  null;		 
 		this.instances = null;
 		this.alignments = null;
-		this.multipleTrees = false;
 		this.punctuationRemoval = false;
 		
 		logger.info("done.");
@@ -363,7 +350,7 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	String t_tree = cas2CoNLLX(tView);
 	    	logger.fine("\nThe Tree of Text:\n" + t_tree);
 	    	
-	    	if(this.multipleTrees){
+	    	if(checkMultiTree(t_tree)){
 	    		t_tree = mergeTrees(t_tree);
 	    		logger.fine("\nThe Merged Tree of Text:\n" + t_tree);
 	    	}
@@ -371,7 +358,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	//remove punctuation
 	    	if (this.punctuationRemoval) {
 	    		t_tree = removePunctuation(t_tree);
-	    		logger.fine("\nThe Tree of Text after removing punctuation:\n" + t_tree);
+	    		System.out.println("THIS TREE HAS TWO TREES");
+	    		logger.info("\nThe Tree of Text after removing punctuation:\n" + t_tree);
 	    	}
 	    	
 	    	//create the Text fragment
@@ -382,7 +370,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 	    	String h_tree = cas2CoNLLX(hView);
 	    	logger.fine("\nThe Tree of Hypothesis:\n" + h_tree);
 
-	    	if(this.multipleTrees){
+	    	if(checkMultiTree(h_tree)){
+	    		System.out.println("THIS TREE");
 	    		h_tree = mergeTrees(h_tree);
 	    		logger.fine("\nThe Merged Tree of Hypothesis:\n" + h_tree);
 	    	}
@@ -428,9 +417,10 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    String t_tree = cas2CoNLLX(tView);
 		    logger.fine("Text:\n" + t_tree);
 		    
-		    if(this.multipleTrees){
+		    if(checkMultiTree(t_tree)){
 		    	t_tree = mergeTrees(t_tree);
-		    	logger.fine("Merged text:\n" + t_tree);
+		    	System.out.println("THIS TREE");
+		    	logger.info("Merged text:\n" + t_tree);
 		    }
 		    
 		  //remove punctuation
@@ -449,7 +439,8 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
 		    
 		    logger.fine("Hypothesis:\n" + h_tree);
 		    
-		    if(this.multipleTrees){
+		    if(checkMultiTree(h_tree)){
+		    	System.out.println("THIS TREE");
 		    	h_tree = mergeTrees(h_tree);
 		    	logger.info("Merged hypothesis:\n" + h_tree);
 		    }
@@ -826,6 +817,11 @@ public class FixedWeightTreeEditDistance implements DistanceCalculation {
     	return fragment;
     	
     }
+    
+   private boolean checkMultiTree(String tree){
+	   String[] trees = tree.split("\n\n");
+	   return trees.length>1;
+   }
 
    private String mergeTrees(String multiTree){
 	   String[] trees = multiTree.split("\n\n");
