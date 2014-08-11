@@ -492,10 +492,11 @@ public class LexicalAligner implements AlignmentComponent {
 		}
 		
 		// Wikipedia
+		/* Commentata da Roberto come chiesto da Vered
 		else if (rule.getResourceName().equals("Wikipedia")) {
 			type = ((WikiRuleInfo)rule.getInfo()).getBestExtractionType().name();
 		}
-		
+		*/
 		// VerbOcean
 		else if (rule.getResourceName().equals("VerbOcean")) {
 			type = ((VerbOceanRuleInfo)rule.getInfo()).getRelationType().name();
